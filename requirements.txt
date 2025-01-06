@@ -1,0 +1,6 @@
+aiohttp
+flask[async]
+flask_pymongo
+requests
+azure-cognitiveservices-speech
+google-transliteration-api
