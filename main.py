@@ -1,15 +1,13 @@
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from flask_pymongo import PyMongo
 from google.transliteration import transliterate_text
-from config import config
 import string, os, mimetypes, datetime
 import stt, tts, chatbot as c, translator as t
 
 app = Flask(__name__)
 app.debug = True # set to debug mode
-configuration = config()
-db_username = configuration['DB_USERNAME']
-db_password = configuration['DB_PASSWORD']
+db_username = os.getenv('DB_USERNAME')
+db_password = os.getenv('DB_PASSWORD')
 mongo = PyMongo(app, uri = f"mongodb+srv://{db_username}:{db_password}@cluster0.ctuol90.mongodb.net/FYP")
 app.config['SECRET_KEY'] = 'testing_secret_key'
 app.config['UPLOAD_FOLDER'] = 'uploads' # Folder to save uploaded files
