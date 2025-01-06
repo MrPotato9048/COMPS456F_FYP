@@ -1,4 +1,5 @@
 aiohttp
+gunicorn
 flask[async]
 flask_pymongo
 requests
