@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <input type="hidden" id="lang" value="{{ session.lang }}">
+    <div class="chat-container">
+        <div class="chat-header">
+            {% if lang == 'en' %}
+                <h5>Chatbot Conversation</h5>
+            {% elif lang == 'ne' %}
+                <h5>च्याटबोट बार्तालाप</h5>
+            {% elif lang == 'ur' %}
+                <h5 dir="rtl">چیٹ بوٹ بات چیت</h5>
+            {% elif lang == 'fil' %}
+                <h5>Usapan ng Chatbot</h5>
+            {% endif %}
+        </div>
+        <div class="chat-messages">
+            <!-- chat messages will be rendered here -->
+        </div>
+        <div class="input-group">
+            {% if lang == 'en' %}
+                <input type="text" id="user-input" class="form-control" placeholder="Type your message...">
+            {% elif lang == 'ne' %}
+                <input type="text" id="user-input" class="form-control" placeholder="तपाईँको सन्देश टाइप गर्नुहोस्...">
+            {% elif lang == 'ur' %}
+                <input type="text" id="user-input" class="form-control" dir="rtl" placeholder="اپنا پیغام ٹائپ کریں...">
+            {% elif lang == 'fil' %}
+                <input type="text" id="user-input" class="form-control" placeholder="Type mo ang message mo...">
+            {% endif %}
+            <button class="btn btn-primary" id="send-btn">
+                {% if lang == 'en' %}
+                    Send
+                {% elif lang == 'ne' %}
+                    पठाउनुहोस्
+                {% elif lang == 'ur' %}
+                    بھیج
+                {% elif lang == 'fil' %}
+                    Magpadala
+                {% endif %}
+            </button>
+            <button class="btn btn-secondary" id="speech-btn" onclick="startSpeechRecognition()">
+                {% if lang == 'en' %}
+                    Speak
+                {% elif lang == 'ne' %}
+                    बोल्नुहोस्
+                {% elif lang == 'ur' %}
+                    بولنا
+                {% elif lang == 'fil' %}
+                    Magsalita
+                {%  endif %}
+            </button>
+        </div>
+    </div>
+    <div class="modal fade" id="speech-modal" tabindex="-1" aria-labelledby="speech-modal-label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="speech-modal-label">Speak into your microphone</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Please speak into your microphone.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var lang = document.getElementById('lang').value;
+        const userInputField = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const speechBtn = document.getElementById('speech-btn');
+        const chatMessagesDiv = document.querySelector('.chat-messages');
+
+        sendBtn.addEventListener('click', () => {
+            const userInput = userInputField.value.trim();
+            if (userInput) {
+                renderUser (userInput);
+                sendRequestToPython('text', userInput);
+                userInputField.value = '';
+            }
+        });
+
+        function renderUser (userInput) {
+            var langTexts = {
+                'en': 'You:',
+                'ur': 'آپ:',
+                'ne': 'तपाईं:',
+                'fil': 'Iyo:'
+            };
+            var userText = langTexts[lang];
+            var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${userText}</span><p>${userInput}</p></div>`;
+            chatMessagesDiv.innerHTML += messageHTML;
+        }
+
+        function startSpeechRecognition() {
+            $('#speech-modal').modal('show');
+            fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inputType: 'speech' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                renderChatMessages(data);
+                $('#speech-modal').modal('hide');
+            })
+            .catch(error => console.error(error));
+        }
+
+        function sendRequestToPython(inputType, userInput) {
+            fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inputType: inputType, userInput: userInput })
+            })
+            .then(response => response.json())
+            .then(data => {
+                renderChatMessages(data);
+            })
+            .catch(error => console.error(error));
+        }
+
+        function renderChatMessages(data) {
+            var langTexts = {
+                'en': 'Bot:',
+                'ur': 'باٹ:',
+                'ne': 'बोट:',
+                'fil': 'Bot:'
+            };
+            var userTexts = {
+                'en': 'You:',
+                'ur': 'آپ:',
+                'ne': 'तपाईं:',
+                'fil': 'Iyo:'
+            };
+            var botText = langTexts[lang];
+            var userText = userTexts[lang];
+            
+            // Show user input
+            if (data.user_input) {
+                var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${userText}</span><p>${data.user_input}</p></div>`;
+                chatMessagesDiv.innerHTML += messageHTML;
+            }
+
+            // Convert new line to <br>
+            var formattedResponse = data.response.replace(/\n/g, '<br>');
+
+            // Show chatbot response
+            var messageHTML = `<div class="message bot" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${botText}</span><p>${formattedResponse}</p></div>`;
+            chatMessagesDiv.innerHTML += messageHTML;
+
+            // Toggle button for the law table
+            var toggleButtonHTML = `<button class="btn btn-info" id="toggle-table-btn">Show Detailed Law</button>`;
+            chatMessagesDiv.innerHTML += toggleButtonHTML;
+            
+            // Law table
+            if (data.retrieved && data.retrieved.length > 0) {
+                var lawsHTML = '<table class="table" style="display: none;"><tbody>';
+                data.retrieved.forEach(law => {
+                    lawsHTML += `
+                        <tr>
+                            <td>
+                                <h4>Cap. ${law.law_id} (${law.law_chapter})</h4>
+                                <p>${law.law_text}</p>
+                            </td>
+                        </tr>
+                    `;
+                });
+                lawsHTML += '</tbody></table>';
+                chatMessagesDiv.innerHTML += lawsHTML;
+
+                // Event listener for the toggle button
+                document.getElementById('toggle-table-btn').addEventListener('click', function() {
+                    var table = chatMessagesDiv.querySelector('.table');
+                    if (table.style.display === 'none') {
+                        table.style.display = 'table';
+                        this.textContent = 'Hide Detailed Law';
+                    } else {
+                        table.style.display = 'none';
+                        this.textContent = 'Show Detailed Law';
+                    }
+                });
+            }
+
+            // Fetch TTS
+            fetch('/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: data.response, lang: lang })
+            })
+            .then(response => response.json())
+            .then(data => console.log(data.message))
+            .catch(error => console.error(error));
+        }
+    </script>
+
+    <!-- For audio upload -->
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" accept="audio/*" required>
+        <button type="submit">Upload Audio</button>
+    </form>
+
+    <div id="response"></div>
+
+    <script>
+        $(document).ready(function() {
+            $('#uploadForm').on('submit', function(e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+
+                $.ajax({
+                    url: '/upload',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(data) {
+                        renderChatMessages(data);
+                    },
+                    error: function(jqXHR) {
+                        $('#response').html('<p>Error: ' + jqXHR.responseJSON.error + '</p>');
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}
