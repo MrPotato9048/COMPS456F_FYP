@@ -1,8 +1,6 @@
-import aiohttp
-from config import config
+import aiohttp, os
 
-configuration = config()
-api = configuration['LEGEXP_API_KEY']
+api = os.getenv('LEGEXP_API_KEY')
 
 api_endpoint = "https://api.thinkthinksyn.com/legalexp/rag/chat"
 headers = {

@@ -1,8 +1,7 @@
 import azure.cognitiveservices.speech as speechsdk
-from config import config
+import os
 
-configuration = config()
-key, region = configuration['SPEECH_KEY'], configuration['SPEECH_REGION']
+key, region = os.getenv('SPEECH_KEY'), os.getenv('SPEECH_REGION')
 
 def recognize_from_microphone(lang):
     speech_config = speechsdk.SpeechConfig(subscription=key, region=region)

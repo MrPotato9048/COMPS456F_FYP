@@ -1,10 +1,7 @@
-import requests
-from config import config
+import requests, os
 
-configuration = config()
-
-key = configuration['TRANSLATOR_KEY'] # key of azure translator api
-region = configuration['TRANSLATOR_REGION']
+key = os.getenv('TRANSLATOR_KEY') # key of azure translator api
+region = os.getenv('TRANSLATOR_REGION')
 endpoint = "https://api.cognitive.microsofttranslator.com"
 
 """def detect_language(text):
@@ -19,6 +16,7 @@ endpoint = "https://api.cognitive.microsofttranslator.com"
     body = [{'text': text}]
     response = requests.post(constructed_url, params=params, headers=headers, json=body).json()
     return response[0]['language']"""
+
 def translate(text, source_language, target_language):
     url = endpoint + '/translate'
 
