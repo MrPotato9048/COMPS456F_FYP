@@ -1,7 +1,8 @@
+from datetime import datetime
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from flask_pymongo import PyMongo
 from google.transliteration import transliterate_text
-import string, os, mimetypes, datetime
+import string, os, mimetypes
 import stt, tts, chatbot as c, translator as t
 
 app = Flask(__name__)
@@ -20,7 +21,7 @@ engine_lang = "zh-Hant"
 def saveDB(inputType, inputText, translatedInput, outputText, translatedOutput):
     # Save data to MongoDB, not sure if to save tts audio as well
     data = {
-        "datetime": datetime.datetime.now(),
+        "datetime": datetime.now(),
         "inputType": inputType,
         "inputText": inputText,
         "translatedInput": translatedInput,
