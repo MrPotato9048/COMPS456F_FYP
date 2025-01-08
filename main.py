@@ -128,7 +128,11 @@ def is_supported_audio(file_path):
 def set_language():
     if 'lang' not in session:
         session['lang'] = "en"  # default language
-    session['login'] = False # default login status, for accessing database
+
+@app.before_request
+def set_login():
+    if 'login' not in session:
+        session['login'] = False # default login status, for accessing database
 
 # can't stop TTS audio from playing when switching before webpages
 """@app.before_request
