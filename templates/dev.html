@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="accordion">
+    {% if queries|length == 0 %}
+    <div class="alert alert-warning" role="alert">
+        No entry found!
+    </div>
+    {% else %}
+    {% for query in queries %}
+    <div class="card">
+        <div class="card-header" id="heading{{ loop.index }}" data-toggle="collapse" data-target="#collapse{{ loop.index }}" aria-expanded="true" aria-controls="collapse{{ loop.index }}">
+            <h5 class="mb-0">
+                ID: {{ query._id.$oid }} Date/time: {{ query.datetime.$date }}
+            </h5>
+        </div>
+        <div id="collapse{{ loop.index }}" class="collapse" aria-labelledby="heading{{ loop.index }}" data-parent="#accordion">
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr>
+                        <th>Input Type</th>
+                        <td>{{ query.inputType }}</td>
+                    </tr>
+                    <tr>
+                        <th>Input Text</th>
+                        <td>{{ query.inputText }}</td>
+                    </tr>
+                    <tr>
+                        <th>Translated Input</th>
+                        <td>{{ query.translatedInput }}</td>
+                    </tr>
+                    <tr>
+                        <th>Output Text</th>
+                        <td>{{ query.outputText.response }}</td>
+                    </tr>
+                    <tr>
+                        <th>Translated Output</th>
+                        <td>{{ query.translatedOutput.response }}</td>
+                    </tr>
+                    <tr>
+                        <th>Retrieved Laws</th>
+                        <td>
+                            <ul>
+                                {% for law in query.outputText.retrieved %}
+                                <li>{{ law.law_chapter }} - {{ law.law_id }}: {{ law.law_text }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Translated Retrieved Laws</th>
+                        <td>
+                            <ul>
+                                {% for law in query.translatedOutput.retrieved %}
+                                <li>{{ law.law_chapter }} - {{ law.law_id }}: {{ law.law_text }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+<script>
+    $(document).ready(function(){
+        $('#accordion').on('show.bs.collapse', function () {
+            $('#accordion .collapse.show').collapse('hide');
+        });
+    });
+</script>
+{% endblock %}

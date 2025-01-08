@@ -126,6 +126,7 @@ def is_supported_audio(file_path):
 def set_language():
     if 'lang' not in session:
         session['lang'] = "en"  # default language
+    session['login'] = False # default login status, for accessing database
 
 # can't stop TTS audio from playing when switching before webpages
 """@app.before_request
@@ -205,6 +206,11 @@ def text2speech():
     lang = data['lang']
     tts.speak_text(text, lang)
     return jsonify({'message': 'TTS completed'})
+
+@app.route('/dev', methods=['GET'])
+def dev():
+    queries = mongo.db.query.find()
+    return render_template('dev.html', queries=queries)
 
 if __name__ == "__main__":
     app.run()
