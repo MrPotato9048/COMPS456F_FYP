@@ -225,7 +225,7 @@ def login():
 @app.route('/dev', methods=['GET'])
 def dev():
     if not session.get('login'):
-        return redirect(url_for('login'), error='Login to access')
+        return redirect(url_for('login', error='Login to access'))
     queries = mongo.db.query.find()
     processed_queries = []
     for query in queries:
