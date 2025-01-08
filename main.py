@@ -216,7 +216,7 @@ def dev():
         query['_id'] = str(query['_id'])
         query['datetime'] = query['datetime'].isoformat() if isinstance(query['datetime'], datetime) else query['datetime']
         processed_queries.append(query)
-    return render_template('dev.html', queries=queries)
+    return render_template('dev.html', queries=processed_queries)
 
 if __name__ == "__main__":
     app.run()
