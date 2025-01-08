@@ -215,12 +215,20 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        # Debug
+        print(f"Received username: {username}, password: {password}")
+        print(f"Expected username: {os.getenv('ADMIN_USERNAME')}, password: {os.getenv('ADMIN_PASSWORD')}")
         if username == os.getenv('ADMIN_USERNAME') and password == os.getenv('ADMIN_PASSWORD'):
             session['login'] = True
             return redirect(url_for('dev'))
         else:
             return render_template('login.html', error='Invalid credentials')
     return render_template('login.html', error=error)
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.pop('login', None)
+    return redirect(url_for('chat'))
 
 @app.route('/dev', methods=['GET'])
 def dev():
