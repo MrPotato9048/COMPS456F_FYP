@@ -18,11 +18,12 @@ translator_languages = ["en", "ne", "ur", "fil"]
 speech_languages = ["en-US", "ne-NP", "ur-IN", "fil-PH"]
 engine_lang = "zh-Hant"
 
-def saveDB(inputType, inputText, translatedInput, outputText, translatedOutput):
+def saveDB(inputType, lang, inputText, translatedInput, outputText, translatedOutput):
     # Save data to MongoDB, not sure if to save tts audio as well
     data = {
         "datetime": datetime.now(),
         "inputType": inputType,
+        "inputLang": lang,
         "inputText": inputText,
         "translatedInput": translatedInput,
         "outputText": outputText,
@@ -46,7 +47,7 @@ async def text(lang, user_input):
             'law_chapter': translated_law_chapter
         })
     translated_response = t.translate(chatbot_response['response'],  engine_lang, lang)
-    saveDB("text", user_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
+    saveDB("Text", lang, user_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
     return {
         'response': translated_response,
         'retrieved': translated_retrieved
@@ -78,7 +79,7 @@ async def speech(lang):
             'law_chapter': translated_law_chapter
         })
     translated_response = t.translate(chatbot_response['response'],  engine_lang, lang)
-    saveDB("speech", user_speech_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
+    saveDB("Speech", lang, user_speech_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
     return {
         'userInput': user_speech_input,
         'response': translated_response,
@@ -112,7 +113,7 @@ async def audio(file_path, lang):
             'law_chapter': translated_law_chapter
         })
     translated_response = t.translate(chatbot_response['response'],  engine_lang, lang)
-    saveDB("audio", audio_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
+    saveDB("Audio", lang, audio_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
     return {
         'userInput': audio_input,
         'response': translated_response,
@@ -208,8 +209,23 @@ def text2speech():
     tts.speak_text(text, lang)
     return jsonify({'message': 'TTS completed'})
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = request.args.get('error')
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if username == os.getenv('ADMIN_USERNAME') and password == os.getenv('ADMIN_PASSWORD'):
+            session['login'] = True
+            return redirect(url_for('dev'))
+        else:
+            return render_template('login.html', error='Invalid credentials')
+    return render_template('login.html', error=error)
+
 @app.route('/dev', methods=['GET'])
 def dev():
+    if not session.get('login'):
+        return redirect(url_for('login'), error='Login to access')
     queries = mongo.db.query.find()
     processed_queries = []
     for query in queries:
