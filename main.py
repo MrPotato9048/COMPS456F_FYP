@@ -210,6 +210,11 @@ def text2speech():
 @app.route('/dev', methods=['GET'])
 def dev():
     queries = mongo.db.query.find()
+    processed_queries = []
+    for query in queries:
+        query['_id'] = str(query['_id'])
+        query['datetime'] = query['datetime'].isoformat() if isinstance(query['datetime'], datetime) else query['datetime']
+        processed_queries.append(query)
     return render_template('dev.html', queries=queries)
 
 if __name__ == "__main__":
