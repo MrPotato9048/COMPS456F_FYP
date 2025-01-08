@@ -91,10 +91,5 @@
         <main role="main" class="container">
             {% block content %}{% endblock %}
         </main>
-        <script>
-            window.addEventListener('beforeunload', function(e){
-                navigator.sendBeacon('/logout');
-            });
-        </script>
     </body>
 </html>

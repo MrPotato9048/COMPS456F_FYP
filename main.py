@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from flask_pymongo import PyMongo
 from google.transliteration import transliterate_text
@@ -11,6 +11,7 @@ db_username = os.getenv('DB_USERNAME')
 db_password = os.getenv('DB_PASSWORD')
 mongo = PyMongo(app, uri = f"mongodb+srv://{db_username}:{db_password}@cluster0.ctuol90.mongodb.net/FYP")
 app.config['SECRET_KEY'] = 'testing_secret_key'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 app.config['UPLOAD_FOLDER'] = 'uploads' # Folder to save uploaded files
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -125,12 +126,10 @@ def is_supported_audio(file_path):
     return mime_type in ['audio/wav'] # Microsoft Azure only supports .wav files
     
 @app.before_request
-def set_language():
+def initialize():
+    session.permanent = True
     if 'lang' not in session:
         session['lang'] = "en"  # default language
-
-@app.before_request
-def set_login():
     if 'login' not in session:
         session['login'] = False # default login status, for accessing database
 
@@ -231,7 +230,7 @@ def login():
 
 @app.route('/logout', methods=['POST'])
 def logout():
-    session.pop('login', None)
+    session.clear()
     return redirect(url_for('chat'))
 
 @app.route('/dev', methods=['GET'])
