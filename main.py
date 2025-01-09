@@ -5,6 +5,9 @@ from google.transliteration import transliterate_text
 import string, os, mimetypes
 import stt, tts, chatbot as c, translator as t
 
+from dotenv import load_dotenv
+load_dotenv()
+
 app = Flask(__name__)
 app.debug = True # set to debug mode
 db_username = os.getenv('DB_USERNAME')
@@ -209,8 +212,12 @@ def text2speech():
     data = request.get_json()
     text = data['text']
     lang = data['lang']
-    tts.speak_text(text, lang)
-    return jsonify({'message': 'TTS completed'})
+    audio_filename = tts.speak_text(text, lang)
+    if audio_filename:
+        audio_url = url_for('static', filename=os.path.relpath(audio_filename, 'static'))
+        return jsonify({'message': 'TTS completed', 'audio_url': audio_url})
+    else:
+        return jsonify({'message': 'TTS failed'}), 500
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

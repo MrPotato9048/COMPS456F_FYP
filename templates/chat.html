@@ -191,7 +191,14 @@
                 body: JSON.stringify({ text: data.response, lang: lang })
             })
             .then(response => response.json())
-            .then(data => console.log(data.message))
+            .then(data => {
+                if (data.audio_url) {
+                    const audio = new Audio(data.audio_url);
+                    audio.play();
+                } else {
+                    console.error('TTS failed');
+                }
+            })
             .catch(error => console.error(error));
         }
     </script>
