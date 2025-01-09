@@ -150,13 +150,13 @@
             // Show chatbot response
             var messageHTML = `<div class="message bot" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${botText}</span><p>${formattedResponse}</p></div>`;
             chatMessagesDiv.innerHTML += messageHTML;
-
-            // Toggle button for the law table
-            var toggleButtonHTML = `<button class="btn btn-info" id="toggle-table-btn">Show Detailed Law</button>`;
-            chatMessagesDiv.innerHTML += toggleButtonHTML;
             
             // Law table
             if (data.retrieved && data.retrieved.length > 0) {
+                // Toggle button for the law table
+                var toggleButtonHTML = `<button class="btn btn-info" id="toggle-table-btn">Show Detailed Law</button>`;
+                chatMessagesDiv.innerHTML += toggleButtonHTML;
+                
                 var lawsHTML = '<table class="table" style="display: none;"><tbody>';
                 data.retrieved.forEach(law => {
                     lawsHTML += `
