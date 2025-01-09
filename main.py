@@ -5,8 +5,8 @@ from google.transliteration import transliterate_text
 import string, os, mimetypes
 import stt, tts, chatbot as c, translator as t
 
-from dotenv import load_dotenv
-load_dotenv()
+"""from dotenv import load_dotenv
+load_dotenv()"""
 
 app = Flask(__name__)
 app.debug = True # set to debug mode
