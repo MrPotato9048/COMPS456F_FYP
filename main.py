@@ -1,3 +1,4 @@
+from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from flask_pymongo import PyMongo
@@ -251,6 +252,20 @@ def dev():
         query['datetime'] = query['datetime'].isoformat() if isinstance(query['datetime'], datetime) else query['datetime']
         processed_queries.append(query)
     return render_template('dev.html', queries=processed_queries)
+
+@app.route('/delete', methods=['DELETE'])
+def delete():
+    query_id = request.args.get('queryId')
+    if not session.get('login'):
+        return redirect(url_for('login', error='Login to access'))
+    try:
+        result = mongo.db.query.delete_one({'_id': ObjectId(query_id)})
+        if result.deleted_count == 1:
+            return jsonify({'message': 'Query deleted successfully'}), 200
+        else:
+            return jsonify({'error': 'Query not found or already deleted'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
     app.run()
