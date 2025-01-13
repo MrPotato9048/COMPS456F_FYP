@@ -215,7 +215,7 @@ def text2speech():
     lang = data['lang']
     audio_filename = tts.speak_text(text, lang)
     if audio_filename:
-        audio_url = url_for('static', filename=os.path.relpath(audio_filename, 'static'))
+        audio_url = url_for('static', filename=os.path.relpath(audio_filename, 'static').replace('\\', '/'))
         return jsonify({'message': 'TTS completed', 'audio_url': audio_url})
     else:
         return jsonify({'message': 'TTS failed'}), 500
