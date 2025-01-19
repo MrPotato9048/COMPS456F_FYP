@@ -57,6 +57,62 @@
             .input-group {
                 margin-top: 20px;
             }
+            .transliteration_demo {
+                display: flex;
+                align-items: center;
+                margin-top: 10px;
+            }
+
+            .toggle-button {
+                width: 60px;
+                height: 30px;
+                background-color: red;
+                border-radius: 15px;
+                position: relative;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+                margin-left: 10px;
+            }
+
+            .toggle-circle {
+                width: 26px;
+                height: 26px;
+                background-color: white;
+                border-radius: 50%;
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                transition: transform 0.3s ease;
+            }
+
+            .toggle-button.active {
+                background-color: green;
+            }
+
+            .toggle-button.active .toggle-circle {
+                transform: translateX(30px);
+            }
+
+            .suggestions-list {
+                border: 1px solid #ccc;
+                max-height: 150px;
+                overflow-y: auto;
+                position: absolute;
+                background: white;
+                z-index: 1000;
+                width: calc(100% - 30px); 
+            }
+            .suggestion-item {
+                padding: 8px;
+                cursor: pointer;
+            }
+            .suggestion-item:hover, .suggestion-item.highlight {
+                background-color: #f0f0f0; 
+            }
+            .btn-secondary.active {
+                background-color: green; 
+                color: white; 
+            }
         </style>
     </head>
     <body>
