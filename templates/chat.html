@@ -50,6 +50,14 @@
                 {%  endif %}
             </button>
         </div>
+        <div id="suggestions" class="suggestions-list" style="display: none;"></div>
+        <br>
+        <div class="transliteration_demo" {% if lang == 'en' %}style="display: none;"{% endif %}>
+            <span>Transliteration</span>
+            <div class="toggle-button" id="transliteration-btn">
+                <div class="toggle-circle"></div>
+            </div>
+        </div>
     </div>
     <div class="modal fade" id="speech-modal" tabindex="-1" aria-labelledby="speech-modal-label" aria-hidden="true">
         <div class="modal-dialog">
@@ -66,195 +74,292 @@
             </div>
         </div>
     </div>
-    <script>
-        var lang = document.getElementById('lang').value;
-        const userInputField = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
-        const speechBtn = document.getElementById('speech-btn');
-        const chatMessagesDiv = document.querySelector('.chat-messages');
+    <script> 
         let audio = null;
         let currentButton = null;
-    
-        sendBtn.addEventListener('click', () => {
-            const userInput = userInputField.value.trim();
-            if (userInput) {
-                renderUser(userInput);
-                sendRequestToPython('text', userInput);
-                userInputField.value = '';
-            }
-        });
-    
-        function renderUser(userInput) {
-            var langTexts = {
-                'en': 'You:',
-                'ur': 'آپ:',
-                'ne': 'तपाईं:',
-                'fil': 'Iyo:'
-            };
-            var userText = langTexts[lang];
-            var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${userText}</span><p>${userInput}</p></div>`;
-            chatMessagesDiv.innerHTML += messageHTML;
-        }
-    
-        function startSpeechRecognition() {
-            $('#speech-modal').modal('show');
-            fetch('/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ inputType: 'speech' })
-            })
-            .then(response => response.json())
-            .then(data => {
-                renderChatMessages(data);
-                $('#speech-modal').modal('hide');
-            })
-            .catch(error => console.error(error));
-        }
-    
-        function sendRequestToPython(inputType, userInput) {
-            fetch('/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ inputType: inputType, userInput: userInput })
-            })
-            .then(response => response.json())
-            .then(data => {
-                renderChatMessages(data);
-            })
-            .catch(error => console.error(error));
-        }
-    
-        function renderChatMessages(data) {
-            var langTexts = {
-                'en': 'Bot:',
-                'ur': 'باٹ:',
-                'ne': 'बोट:',
-                'fil': 'Bot:'
-            };
-            var userTexts = {
-                'en': 'You:',
-                'ur': 'آپ:',
-                'ne': 'तपाईं:',
-                'fil': 'Iyo:'
-            };
-            var botText = langTexts[lang];
-            var userText = userTexts[lang];
-            
-            // Show user input
-            if (data.user_input) {
-                var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${userText}</span><p>${data.user_input}</p></div>`;
+        document.addEventListener('DOMContentLoaded', function () {
+            var lang = document.getElementById('lang').value;
+            const userInputField = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const speechBtn = document.getElementById('speech-btn');
+            const chatMessagesDiv = document.querySelector('.chat-messages');
+            const transliterationBtn = document.getElementById('transliteration-btn'); 
+            const suggestionsDiv = document.getElementById('suggestions');
+            let isTransliterationOn = false;
+            let currentSuggestionIndex = -1; // Track the currently highlighted suggestion
+
+            sendBtn.addEventListener('click', () => {
+                const userInput = userInputField.value.trim();
+                if (userInput) {
+                    renderUser(userInput);
+                    sendRequestToPython('text', userInput);
+                    userInputField.value = '';
+                    suggestionsDiv.style.display = 'none';
+                }
+            });
+        
+            function renderUser(userInput) {
+                var langTexts = {
+                    'en': 'You:',
+                    'ur': 'آپ:',
+                    'ne': 'तपाईं:',
+                    'fil': 'Iyo:'
+                };
+                var userText = langTexts[lang];
+                var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${userText}</span><p>${userInput}</p></div>`;
                 chatMessagesDiv.innerHTML += messageHTML;
             }
-    
-            // Show loading indicator for chatbot response
-            var loadingHTML = `<div class="message bot loading" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${botText}</span><p>Thinking...</p></div>`;
-            chatMessagesDiv.innerHTML += loadingHTML;
-    
-            // Fetch TTS and update the response once ready
-            fetchTTS(data.response, document.querySelector('.message.bot.loading'), data.retrieved);
-        }
-    
-        function fetchTTS(text, loadingElement, retrievedLaws) {
-            fetch('/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text, lang: lang })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.audio_url) {
-                    if (audio) {
-                        audio.pause();
-                        audio = null;
-                    }
-                    audio = new Audio(data.audio_url);
-                    audio.play();
-
-                    // Update the loading element with the actual response and TTS button
-                    var formattedResponse = text.replace(/\n/g, '<br>');
-                    var responseHTML = `
-                        <span>${loadingElement.querySelector('span').innerHTML}</span>
-                        <p>${formattedResponse}</p>
-                        <button class="btn btn-success" onclick="toggleTTS('${data.audio_url}', this)"><i class="fas fa-pause"></i></button>
-                    `;
-                    loadingElement.innerHTML = responseHTML;
-                    loadingElement.classList.remove('loading');
-                    loadingElement.querySelector('button').classList.remove('btn-success');
-                    loadingElement.querySelector('button').classList.add('btn-danger');
-                    currentButton = loadingElement.querySelector('button');
-
-                    // Add the law table toggle button and law table
-                    if (retrievedLaws && retrievedLaws.length > 0) {
-                        var toggleButtonHTML = `<button class="btn btn-info" id="toggle-table-btn">Show Detailed Law</button>`;
-                        loadingElement.innerHTML += toggleButtonHTML;
-
-                        var lawsHTML = '<table class="table" style="display: none;"><tbody>';
-                        retrievedLaws.forEach(law => {
-                            lawsHTML += `
-                                <tr>
-                                    <td>
-                                        <h4>Cap. ${law.law_id} (${law.law_chapter})</h4>
-                                        <p>${law.law_text}</p>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-                        lawsHTML += '</tbody></table>';
-                        loadingElement.innerHTML += lawsHTML;
-
-                        // Event listener for the toggle button
-                        document.getElementById('toggle-table-btn').addEventListener('click', function() {
-                            var table = loadingElement.querySelector('.table');
-                            if (table.style.display === 'none') {
-                                table.style.display = 'table';
-                                this.textContent = 'Hide Detailed Law';
-                            } else {
-                                table.style.display = 'none';
-                                this.textContent = 'Show Detailed Law';
-                            }
-                        });
-                    }
-
-                    audio.onended = () => {
-                        if (currentButton) {
-                            currentButton.innerHTML = '<i class="fas fa-play"></i>';
-                            currentButton.classList.remove('btn-danger');
-                            currentButton.classList.add('btn-success');
-                        }
-                    };
-                } else {
-                    console.error('TTS failed');
-                    loadingElement.innerHTML = `<span>${loadingElement.querySelector('span').innerHTML}</span><p>TTS failed</p>`;
-                    loadingElement.classList.remove('loading');
-                }
-            })
-            .catch(error => {
-                console.error(error);
-                loadingElement.innerHTML = `<span>${loadingElement.querySelector('span').innerHTML}</span><p>Error occurred</p>`;
-                loadingElement.classList.remove('loading');
-            });
-        }
-
-        function toggleTTS(audioUrl, button) {
-            if (audio && !audio.paused) {
-                audio.pause();
-                button.innerHTML = '<i class="fas fa-play"></i>';
-                button.classList.remove('btn-danger');
-                button.classList.add('btn-success');
-            } else {
-                if (currentButton && currentButton !== button) {
-                    currentButton.innerHTML = '<i class="fas fa-play"></i>';
-                    currentButton.classList.remove('btn-danger');
-                    currentButton.classList.add('btn-success');
-                }
-                currentButton = button;
-                audio = new Audio(audioUrl);
-                audio.play();
-                button.innerHTML = '<i class="fas fa-pause"></i>';
-                button.classList.remove('btn-success');
-                button.classList.add('btn-danger');
+        
+            function startSpeechRecognition() {
+                $('#speech-modal').modal('show');
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inputType: 'speech' })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    renderChatMessages(data);
+                    $('#speech-modal').modal('hide');
+                })
+                .catch(error => console.error(error));
             }
-        }
+        
+            function sendRequestToPython(inputType, userInput) {
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inputType: inputType, userInput: userInput })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    renderChatMessages(data);
+                })
+                .catch(error => console.error(error));
+            }
+        
+            function renderChatMessages(data) {
+                var langTexts = {
+                    'en': 'Bot:',
+                    'ur': 'باٹ:',
+                    'ne': 'बोट:',
+                    'fil': 'Bot:'
+                };
+                var userTexts = {
+                    'en': 'You:',
+                    'ur': 'آپ:',
+                    'ne': 'तपाईं:',
+                    'fil': 'Iyo:'
+                };
+                var botText = langTexts[lang];
+                var userText = userTexts[lang];
+                
+                // Show user input
+                if (data.user_input) {
+                    var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${userText}</span><p>${data.user_input}</p></div>`;
+                    chatMessagesDiv.innerHTML += messageHTML;
+                }
+        
+                // Show loading indicator for chatbot response
+                var loadingHTML = `<div class="message bot loading" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${botText}</span><p>Thinking...</p></div>`;
+                chatMessagesDiv.innerHTML += loadingHTML;
+        
+                // Fetch TTS and update the response once ready
+                fetchTTS(data.response, document.querySelector('.message.bot.loading'), data.retrieved);
+            }
+        
+            function fetchTTS(text, loadingElement, retrievedLaws) {
+                fetch('/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, lang: lang })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.audio_url) {
+                        if (audio) {
+                            audio.pause();
+                            audio = null;
+                        }
+                        audio = new Audio(data.audio_url);
+                        audio.play();
+
+                        // Update the loading element with the actual response and TTS button
+                        var formattedResponse = text.replace(/\n/g, '<br>');
+                        var responseHTML = `
+                            <span>${loadingElement.querySelector('span').innerHTML}</span>
+                            <p>${formattedResponse}</p>
+                            <button class="btn btn-success" onclick="toggleTTS('${data.audio_url}', this)"><i class="fas fa-pause"></i></button>
+                        `;
+                        loadingElement.innerHTML = responseHTML;
+                        loadingElement.classList.remove('loading');
+                        loadingElement.querySelector('button').classList.remove('btn-success');
+                        loadingElement.querySelector('button').classList.add('btn-danger');
+                        currentButton = loadingElement.querySelector('button');
+
+                        // Add the law table toggle button and law table
+                        if (retrievedLaws && retrievedLaws.length > 0) {
+                            var toggleButtonHTML = `<button class="btn btn-info" id="toggle-table-btn">Show Detailed Law</button>`;
+                            loadingElement.innerHTML += toggleButtonHTML;
+
+                            var lawsHTML = '<table class="table" style="display: none;"><tbody>';
+                            retrievedLaws.forEach(law => {
+                                lawsHTML += `
+                                    <tr>
+                                        <td>
+                                            <h4>Cap. ${law.law_id} (${law.law_chapter})</h4>
+                                            <p>${law.law_text}</p>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                            lawsHTML += '</tbody></table>';
+                            loadingElement.innerHTML += lawsHTML;
+
+                            // Event listener for the toggle button
+                            document.getElementById('toggle-table-btn').addEventListener('click', function() {
+                                var table = loadingElement.querySelector('.table');
+                                if (table.style.display === 'none') {
+                                    table.style.display = 'table';
+                                    this.textContent = 'Hide Detailed Law';
+                                } else {
+                                    table.style.display = 'none';
+                                    this.textContent = 'Show Detailed Law';
+                                }
+                            });
+                        }
+
+                        audio.onended = () => {
+                            if (currentButton) {
+                                currentButton.innerHTML = '<i class="fas fa-play"></i>';
+                                currentButton.classList.remove('btn-danger');
+                                currentButton.classList.add('btn-success');
+                            }
+                        };
+                    } else {
+                        console.error('TTS failed');
+                        loadingElement.innerHTML = `<span>${loadingElement.querySelector('span').innerHTML}</span><p>TTS failed</p>`;
+                        loadingElement.classList.remove('loading');
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    loadingElement.innerHTML = `<span>${loadingElement.querySelector('span').innerHTML}</span><p>Error occurred</p>`;
+                    loadingElement.classList.remove('loading');
+                });
+            }
+
+            function toggleTTS(audioUrl, button) {
+                if (audio && !audio.paused) {
+                    audio.pause();
+                    button.innerHTML = '<i class="fas fa-play"></i>';
+                    button.classList.remove('btn-danger');
+                    button.classList.add('btn-success');
+                } else {
+                    if (currentButton && currentButton !== button) {
+                        currentButton.innerHTML = '<i class="fas fa-play"></i>';
+                        currentButton.classList.remove('btn-danger');
+                        currentButton.classList.add('btn-success');
+                    }
+                    currentButton = button;
+                    audio = new Audio(audioUrl);
+                    audio.play();
+                    button.innerHTML = '<i class="fas fa-pause"></i>';
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-danger');
+                }
+            }
+        
+            // Toggle transliteration on button click
+            transliterationBtn.addEventListener('click', () => {
+                isTransliterationOn = !isTransliterationOn;
+                transliterationBtn.classList.toggle('active', isTransliterationOn);
+                suggestionsDiv.style.display = 'none'; 
+            });
+
+            // Event listener for user input
+            userInputField.addEventListener('input', function() {
+                const currentInput = userInputField.value.trim();
+                if (isTransliterationOn) {
+                    if (currentInput.length > 0) {
+                        fetchTransliterationSuggestions(currentInput);
+                    } else {
+                        suggestionsDiv.style.display = 'none'; 
+                        suggestionsDiv.innerHTML = ''; // Clear suggestions if input is empty
+                    }
+                } else {
+                    suggestionsDiv.style.display = 'none'; 
+                    suggestionsDiv.innerHTML = ''; // Clear suggestions if transliteration is off
+                }
+            });
+
+            // Handle keydown events for space and arrow navigation
+            userInputField.addEventListener('keydown', function(e) {
+                const items = suggestionsDiv.querySelectorAll('.suggestion-item');
+                if (isTransliterationOn && items.length > 0) {
+                    if (e.key === 'ArrowDown') {
+                        currentSuggestionIndex = (currentSuggestionIndex + 1) % items.length; // Move down
+                        highlightSuggestion(currentSuggestionIndex);
+                        e.preventDefault(); // Prevent default behavior
+                    } else if (e.key === 'ArrowUp') {
+                        currentSuggestionIndex = (currentSuggestionIndex - 1 + items.length) % items.length; // Move up
+                        highlightSuggestion(currentSuggestionIndex);
+                        e.preventDefault(); // Prevent default behavior    
+                    } else if (e.key === ' ') {
+                        if (currentSuggestionIndex >= 0) {
+                            e.preventDefault(); // Prevent default space behavior
+                            userInputField.value += items[currentSuggestionIndex].textContent + ' '; // Add suggestion and space
+                            suggestionsDiv.style.display = 'none'; // Hide suggestions
+                            currentSuggestionIndex = -1; // Reset suggestion index
+                            suggestionsDiv.innerHTML = ''; // Clear suggestions after selection
+                        }
+                    } 
+                } else if (e.key === ' ') {
+                    return;
+                }
+            });
+
+            //highlighting suggestions
+            function highlightSuggestion(index) {
+                const items = suggestionsDiv.querySelectorAll('.suggestion-item');
+                items.forEach((item, i) => {
+                    item.classList.toggle('highlight', i === index);
+                });
+            }
+
+            // Event listener for suggestion click
+            suggestionsDiv.addEventListener('click', function(e) {
+                if (e.target.classList.contains('suggestion-item')) {
+                    userInputField.value += e.target.textContent + ' '; 
+                    suggestionsDiv.style.display = 'none'; 
+                    currentSuggestionIndex = -1;
+                    suggestionsDiv.innerHTML = '';
+                }
+            });
+
+            function fetchTransliterationSuggestions(text) {
+                if (text.length > 0) {
+                    fetch(`/transliterate?text=${encodeURIComponent(text)}&lang=${lang}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.suggestions && data.suggestions.length > 0) {
+                                suggestionsDiv.innerHTML = data.suggestions.map((s, index) => 
+                                    `<div class="suggestion-item" data-index="${index}">${s}</div>`).join('');
+                                suggestionsDiv.style.display = 'block'; // Show suggestions
+                                currentSuggestionIndex = 0; // Highlight the first suggestion
+                                highlightSuggestion(currentSuggestionIndex);
+                            } else {
+                                suggestionsDiv.style.display = 'none'; // Hide if no suggestions
+                                suggestionsDiv.innerHTML = '';
+                            }
+                        })
+                        .catch(error => console.error('Error fetching transliteration suggestions:', error));
+                } else {
+                    suggestionsDiv.style.display = 'none'; // Hide suggestions if input is empty
+                    suggestionsDiv.innerHTML = '';
+                }
+            }
+        });
     </script>
 
     <!-- For audio upload -->

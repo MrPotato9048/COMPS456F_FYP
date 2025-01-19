@@ -84,6 +84,3 @@ def transliterate(text, source_language):
     except  requests.exceptions.RequestException as e:
         print(f"Error: {e}")
         return None
-
-        
-    
