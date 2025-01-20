@@ -87,6 +87,7 @@
             const suggestionsDiv = document.getElementById('suggestions');
             let isTransliterationOn = false;
             let currentSuggestionIndex = -1; // Track the currently highlighted suggestion
+            let originalText = '';
 
             sendBtn.addEventListener('click', () => {
                 const userInput = userInputField.value.trim();
@@ -277,16 +278,12 @@
                 suggestionsDiv.style.display = 'none'; 
             });
 
-            // Event listener for user input
+            //Transliteration input function 
             userInputField.addEventListener('input', function() {
                 const currentInput = userInputField.value.trim();
-                if (isTransliterationOn) {
-                    if (currentInput.length > 0) {
-                        fetchTransliterationSuggestions(currentInput);
-                    } else {
-                        suggestionsDiv.style.display = 'none'; 
-                        suggestionsDiv.innerHTML = ''; // Clear suggestions if input is empty
-                    }
+                if (isTransliterationOn) { 
+                    // Always transliterate the current input
+                    fetchTransliterationSuggestions(currentInput);
                 } else {
                     suggestionsDiv.style.display = 'none'; 
                     suggestionsDiv.innerHTML = ''; // Clear suggestions if transliteration is off
@@ -330,16 +327,34 @@
             // Event listener for suggestion click
             suggestionsDiv.addEventListener('click', function(e) {
                 if (e.target.classList.contains('suggestion-item')) {
-                    userInputField.value += e.target.textContent + ' '; 
+                    const selectedSuggestion = e.target.textContent;
+                    const words = userInputField.value.trim().split(' ');
+                    words[words.length - 1] = selectedSuggestion; // Replace the last word
+                    userInputField.value = words.join(' ') + ' '; // Update input field
                     suggestionsDiv.style.display = 'none'; 
                     currentSuggestionIndex = -1;
                     suggestionsDiv.innerHTML = '';
                 }
             });
+            
+            /* Event listener for suggestion click
+            suggestionsDiv.addEventListener('click', function(e) {
+                if (e.target.classList.contains('suggestion-item')) {
+                    //userInputField.value += e.target.textContent + ' '; 
+                    userInputField.value = e.target.textContent; 
+                    suggestionsDiv.style.display = 'none'; 
+                    currentSuggestionIndex = -1;
+                    suggestionsDiv.innerHTML = '';
+                }
+            });
+            */
 
             function fetchTransliterationSuggestions(text) {
-                if (text.length > 0) {
-                    fetch(`/transliterate?text=${encodeURIComponent(text)}&lang=${lang}`)
+                // Split the text and take the last word for transliteration
+                const words = text.split(' ');
+                const currentWord = words[words.length - 1]; // Get the last word
+                if (currentWord.length > 0) {
+                    fetch(`/transliterate?text=${encodeURIComponent(currentWord)}&lang=${lang}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.suggestions && data.suggestions.length > 0) {
