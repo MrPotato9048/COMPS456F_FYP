@@ -267,21 +267,23 @@ def delete():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
+
 @app.route('/transliterate', methods=['GET'])
 def transliterate():
     text = request.args.get('text')
     lang = request.args.get('lang')
 
-    # Call your transliteration function here and get suggestions
+     # Call your transliteration function here and get suggestions
     suggestions = []  # Replace with your transliteration logic
     if lang == 'ne':
         suggestions = [t.transliterate(word, 'ne') for word in text.split()]  # Example for Nepali
+        
+        
     elif lang == 'ur':
         suggestions = [t.transliterate(word, 'ur') for word in text.split()]  # Example for Urdu
-        
-    # Add more cases as necessary
 
     return jsonify(suggestions=suggestions)
+
 
 if __name__ == "__main__":
     app.run()

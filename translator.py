@@ -76,11 +76,17 @@ def transliterate(text, source_language):
         request = requests.post(url, params=params, headers=headers, json=body)
         print("Request sent...")
         response = request.json()
+        
         print("Response received...")
 
         transliterated = response[0]["text"]
-
+        
         return transliterated
+    
     except  requests.exceptions.RequestException as e:
         print(f"Error: {e}")
         return None
+
+
+        
+    
