@@ -75,8 +75,6 @@
         </div>
     </div>
     <script> 
-        let audio = null;
-        let currentButton = null;
         document.addEventListener('DOMContentLoaded', function () {
             var lang = document.getElementById('lang').value;
             const userInputField = document.getElementById('user-input');
@@ -87,7 +85,9 @@
             const suggestionsDiv = document.getElementById('suggestions');
             let isTransliterationOn = false;
             let currentSuggestionIndex = -1; // Track the currently highlighted suggestion
-            let originalText = '';
+            let originalText = ''; //i think this is not needed
+            let audio = null; //not sure if it is in here
+            let currentButton = null; //not sure if it is in here
 
             sendBtn.addEventListener('click', () => {
                 const userInput = userInputField.value.trim();
@@ -277,9 +277,17 @@
                 transliterationBtn.classList.toggle('active', isTransliterationOn);
                 suggestionsDiv.style.display = 'none'; 
             });
+            
+            function debounce(func, delay) {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), delay);
+                };
+            }
 
             //Transliteration input function 
-            userInputField.addEventListener('input', function() {
+             userInputField.addEventListener('input', debounce(function() {
                 const currentInput = userInputField.value.trim();
                 if (isTransliterationOn) { 
                     // Always transliterate the current input
@@ -288,7 +296,8 @@
                     suggestionsDiv.style.display = 'none'; 
                     suggestionsDiv.innerHTML = ''; // Clear suggestions if transliteration is off
                 }
-            });
+            }, 300)); //easier to comment */
+ 
 
             // Handle keydown events for space and arrow navigation
             userInputField.addEventListener('keydown', function(e) {
@@ -301,11 +310,14 @@
                     } else if (e.key === 'ArrowUp') {
                         currentSuggestionIndex = (currentSuggestionIndex - 1 + items.length) % items.length; // Move up
                         highlightSuggestion(currentSuggestionIndex);
-                        e.preventDefault(); // Prevent default behavior    
+                        e.preventDefault(); // Prevent default behavior                           
                     } else if (e.key === ' ') {
                         if (currentSuggestionIndex >= 0) {
                             e.preventDefault(); // Prevent default space behavior
-                            userInputField.value += items[currentSuggestionIndex].textContent + ' '; // Add suggestion and space
+                            const selectedSuggestion = items[currentSuggestionIndex].textContent.trim();
+                            const words = userInputField.value.trim().split(' ');
+                            words[words.length - 1] = selectedSuggestion; // Replace the last word
+                            userInputField.value = words.join(' ') + ' '; // Update input field
                             suggestionsDiv.style.display = 'none'; // Hide suggestions
                             currentSuggestionIndex = -1; // Reset suggestion index
                             suggestionsDiv.innerHTML = ''; // Clear suggestions after selection
@@ -336,19 +348,7 @@
                     suggestionsDiv.innerHTML = '';
                 }
             });
-            
-            /* Event listener for suggestion click
-            suggestionsDiv.addEventListener('click', function(e) {
-                if (e.target.classList.contains('suggestion-item')) {
-                    //userInputField.value += e.target.textContent + ' '; 
-                    userInputField.value = e.target.textContent; 
-                    suggestionsDiv.style.display = 'none'; 
-                    currentSuggestionIndex = -1;
-                    suggestionsDiv.innerHTML = '';
-                }
-            });
-            */
-
+ 
             function fetchTransliterationSuggestions(text) {
                 // Split the text and take the last word for transliteration
                 const words = text.split(' ');
