@@ -5,3 +5,4 @@ flask_pymongo
 requests
 azure-cognitiveservices-speech
 google-transliteration-api
+ai4bharat.transliteration

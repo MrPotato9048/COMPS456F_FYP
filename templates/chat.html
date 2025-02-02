@@ -85,14 +85,16 @@
             const suggestionsDiv = document.getElementById('suggestions');
             let isTransliterationOn = false;
             let currentSuggestionIndex = -1; // Track the currently highlighted suggestion
-            let originalText = ''; //i think this is not needed
-            let audio = null; //not sure if it is in here
-            let currentButton = null; //not sure if it is in here
+            let audio = null;
+            let currentButton = null;
+            let startTime;
+            let documentId;
 
             sendBtn.addEventListener('click', () => {
                 const userInput = userInputField.value.trim();
                 if (userInput) {
                     renderUser(userInput);
+                    startTime = performance.now();
                     sendRequestToPython('text', userInput);
                     userInputField.value = '';
                     suggestionsDiv.style.display = 'none';
@@ -134,6 +136,8 @@
                 })
                 .then(response => response.json())
                 .then(data => {
+                    documentId = data.documentId;
+                    console.log('Document ID: ', documentId);
                     renderChatMessages(data);
                 })
                 .catch(error => console.error(error));
@@ -185,6 +189,18 @@
                         audio = new Audio(data.audio_url);
                         audio.play();
 
+                        const endTime = performance.now();
+                        const duration = (endTime - startTime) / 1000;
+                        console.log('Duration: ', duration);
+
+                        console.log('Document ID before update: ', documentId);
+                        // Update the duration in the database
+                        fetch('/update_duration', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ documentId: documentId, duration: duration })
+                        });
+
                         // Update the loading element with the actual response and TTS button
                         var formattedResponse = text.replace(/\n/g, '<br>');
                         var responseHTML = `
@@ -229,6 +245,44 @@
                                 }
                             });
                         }
+                        var ratingHTML = `
+                            <div class="rating">
+                                <span class="rate-message">Please rate your experience with the response (1: least satisfied - 5: most satisfied): </span>
+                                <div class="star d-block mt-2">
+                                    <input type="radio" id="star5" name="rating" data-value="5">
+                                    <label for="star5" class="bi bi-star-fill"></label>
+                                    <input type="radio" id="star4" name="rating" data-value="4">
+                                    <label for="star4" class="bi bi-star-fill"></label>
+                                    <input type="radio" id="star3" name="rating" data-value="3">
+                                    <label for="star3" class="bi bi-star-fill"></label>
+                                    <input type="radio" id="star2" name="rating" data-value="2">
+                                    <label for="star2" class="bi bi-star-fill"></label>
+                                    <input type="radio" id="star1" name="rating" data-value="1">
+                                    <label for="star1" class="bi bi-star-fill"></label>
+                                </div>
+                                <span class="thank-you-message" style="display: none;">Thank you for your response!</span>
+                            </div>
+                        `;
+                        loadingElement.innerHTML += ratingHTML;
+
+                        const stars = loadingElement.querySelectorAll('.star:not(.readonly) label');
+                        const thankYouMessage = loadingElement.querySelector('.thank-you-message');
+                        stars.forEach(star => {
+                            star.addEventListener('click', function() {
+                                this.style.transform = 'scale(1.2)';
+                                setTimeout(() => {
+                                    this.style.transform = 'scale(1)';
+                                }, 200);
+                                const value = this.previousElementSibling.getAttribute('data-value');
+                                thankYouMessage.style.display = 'block';
+                                fetch('/rate', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ documentId: documentId, rating: value })
+                                });
+                            });
+                            star.disabled = true;
+                        });
 
                         audio.onended = () => {
                             if (currentButton) {
@@ -250,7 +304,7 @@
                 });
             }
 
-            function toggleTTS(audioUrl, button) {
+            window.toggleTTS = function(audioUrl, button) {
                 if (audio && !audio.paused) {
                     audio.pause();
                     button.innerHTML = '<i class="fas fa-play"></i>';

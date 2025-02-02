@@ -28,6 +28,16 @@
                         <td>{{ query.inputLang }}</td>
                     </tr>
                     <tr>
+                        <th>Duration</th>
+                        <td>{{ query.duration }} seconds</td>
+                    </tr>
+                    {% if query.rating %}
+                    <tr>
+                        <th>Rating</th>
+                        <td>{{ query.rating }} out of 5</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
                         <th>Input Text</th>
                         <td>{{ query.inputText }}</td>
                     </tr>
