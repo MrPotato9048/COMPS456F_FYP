@@ -2,9 +2,8 @@ from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from flask_pymongo import PyMongo
-from google.transliteration import transliterate_text
 import string, os, mimetypes
-import stt, tts, chatbot as c, translator as t
+import stt, tts, chatbot as c, translator as t, transliterate as tr
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -22,6 +21,8 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 translator_languages = ["en", "ne", "ur", "fil"] 
 speech_languages = ["en-US", "ne-NP", "ur-IN", "fil-PH"]
 engine_lang = "zh-Hant"
+engine = tr.engineInit(romanize=False) # Initialize transliteration engine
+rengine = tr.engineInit(romanize=True) # Initialize romanization engine
 
 def saveDB(inputType, lang, inputText, translatedInput, outputText, translatedOutput):
     # Save data to MongoDB, not sure if to save tts audio as well
@@ -137,12 +138,6 @@ def initialize():
     if 'login' not in session:
         session['login'] = False # default login status, for accessing database
 
-# can't stop TTS audio from playing when switching before webpages
-"""@app.before_request
-def stop_tts():
-    if request.path != '/tts':
-        tts.stop()"""
-
 # language change
 @app.route('/lang/<lang>')
 def set_language(lang):
@@ -164,8 +159,6 @@ async def chat():
             if lang in ['ne', 'ur']:
                 user_input_cleaned = user_input.translate(str.maketrans('', '', string.punctuation)).replace(" ", "") # clean all punctuation and spaces for alphabet check
                 if user_input_cleaned.strip().isalpha():
-                    """user_input = t.transliterate(user_input, lang)""" # azure transliteration
-                    user_input = transliterate_text(user_input, lang_code=lang) # google transliteration (deprecated)
                     print(user_input)
             response = await text(lang, user_input)
             return jsonify({
@@ -273,15 +266,8 @@ def transliterate():
     text = request.args.get('text')
     lang = request.args.get('lang')
 
-     # Call your transliteration function here and get suggestions
-    suggestions = []  # Replace with your transliteration logic
-    if lang == 'ne':
-        suggestions = [t.transliterate(word, 'ne') for word in text.split()]  # Example for Nepali
-        
-        
-    elif lang == 'ur':
-        suggestions = [t.transliterate(word, 'ur') for word in text.split()]  # Example for Urdu
-
+    suggestions = tr.transliterate(engine, text, lang)
+    print(f"Transliterate suggestions: {suggestions}")
     return jsonify(suggestions=suggestions)
 
 

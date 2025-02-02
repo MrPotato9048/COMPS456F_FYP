@@ -52,7 +52,7 @@
         </div>
         <div id="suggestions" class="suggestions-list" style="display: none;"></div>
         <br>
-        <div class="transliteration_demo" {% if lang == 'en' %}style="display: none;"{% endif %}>
+        <div class="transliteration_demo" {% if lang == 'en' or lang == 'fil' %}style="display: none;"{% endif %}> <!-- only ne and ur display transliteration button -->
             <span>Transliteration</span>
             <div class="toggle-button" id="transliteration-btn">
                 <div class="toggle-circle"></div>
