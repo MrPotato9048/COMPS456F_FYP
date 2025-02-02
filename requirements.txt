@@ -4,4 +4,3 @@ flask[async]
 flask_pymongo
 requests
 azure-cognitiveservices-speech
-ai4bharat-transliteration
