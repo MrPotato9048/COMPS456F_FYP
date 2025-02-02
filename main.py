@@ -2,11 +2,11 @@ from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from flask_pymongo import PyMongo
-import string, os, mimetypes
+import string, os, mimetypes, asyncio
 import stt, tts, chatbot as c, translator as t, transliterate as tr
 
-from dotenv import load_dotenv
-load_dotenv()
+"""from dotenv import load_dotenv
+load_dotenv()"""
 
 app = Flask(__name__)
 app.debug = True # set to debug mode
@@ -35,28 +35,31 @@ def saveDB(inputType, lang, inputText, translatedInput, outputText, translatedOu
         "outputText": outputText,
         "translatedOutput": translatedOutput
     }
-    mongo.db.query.insert_one(data)
+    result = mongo.db.query.insert_one(data)
+    return str(result.inserted_id)
 
 async def text(lang, user_input):
     print("Lang: {lang}, Engine_lang: {engine_lang}".format(lang=lang, engine_lang=engine_lang))
-    translated_input = t.translate(user_input, lang, engine_lang)
+    translated_input = await asyncio.to_thread(t.translate, user_input, lang, engine_lang)
     print(f"Question translated to Chinese: {translated_input}")
     chatbot_response = await c.chatbot(translated_input)
 
-    translated_retrieved = []
-    for item in chatbot_response['retrieved']:
-        translated_law_text = t.translate(item['law_text'], engine_lang, lang)
-        translated_law_chapter = t.translate(item['law_chapter'],  engine_lang, lang)
-        translated_retrieved.append({
+    async def translate_item(item):
+        translated_law_text = await asyncio.to_thread(t.translate, item['law_text'], engine_lang, lang)
+        translated_law_chapter = await asyncio.to_thread(t.translate, item['law_chapter'], engine_lang, lang)
+        return {
             'law_text': translated_law_text,
             'law_id': item['law_id'],
             'law_chapter': translated_law_chapter
-        })
-    translated_response = t.translate(chatbot_response['response'],  engine_lang, lang)
-    saveDB("Text", lang, user_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
+        }
+
+    translated_retrieved = await asyncio.gather(*[translate_item(item) for item in chatbot_response['retrieved']])
+    translated_response = await asyncio.to_thread(t.translate, chatbot_response['response'], engine_lang, lang)
+    documentId = saveDB("Text", lang, user_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
     return {
         'response': translated_response,
-        'retrieved': translated_retrieved
+        'retrieved': translated_retrieved,
+        'documentId': documentId
     }
 
 async def speech(lang):
@@ -70,26 +73,28 @@ async def speech(lang):
             speech_lang = "ur-IN"
         case 'fil':
             speech_lang = "fil-PH"
-    user_speech_input = stt.recognize_from_microphone(speech_lang)
-    translated_input = t.translate(user_speech_input, lang, engine_lang)
+    user_speech_input = await asyncio.to_thread(stt.recognize_from_microphone, speech_lang)
+    translated_input = await asyncio.to_thread(t.translate, user_speech_input, lang, engine_lang)
     print(f"Question translated to Chinese: {translated_input}")
     chatbot_response = await c.chatbot(translated_input)
 
-    translated_retrieved = []
-    for item in chatbot_response['retrieved']:
-        translated_law_text = t.translate(item['law_text'], engine_lang, lang)
-        translated_law_chapter = t.translate(item['law_chapter'],  engine_lang, lang)
-        translated_retrieved.append({
+    async def translate_item(item):
+        translated_law_text = await asyncio.to_thread(t.translate, item['law_text'], engine_lang, lang)
+        translated_law_chapter = await asyncio.to_thread(t.translate, item['law_chapter'], engine_lang, lang)
+        return {
             'law_text': translated_law_text,
             'law_id': item['law_id'],
             'law_chapter': translated_law_chapter
-        })
-    translated_response = t.translate(chatbot_response['response'],  engine_lang, lang)
-    saveDB("Speech", lang, user_speech_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
+        }
+
+    translated_retrieved = await asyncio.gather(*[translate_item(item) for item in chatbot_response['retrieved']])
+    translated_response = await asyncio.to_thread(t.translate, chatbot_response['response'], engine_lang, lang)
+    documentId = saveDB("Speech", lang, user_speech_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
     return {
         'userInput': user_speech_input,
         'response': translated_response,
-        'retrieved': translated_retrieved
+        'retrieved': translated_retrieved,
+        'documentId': documentId
     }
 
 # Allow audio uploading, used for testing only (not gonna merge with speech function)
@@ -104,26 +109,28 @@ async def audio(file_path, lang):
             speech_lang = "ur-IN"
         case 'fil':
             speech_lang = "fil-PH"
-    audio_input = stt.recognize_from_audio(file_path, speech_lang)
-    translated_input = t.translate(audio_input, lang, engine_lang)
+    audio_input = await asyncio.to_thread(stt.recognize_from_audio, file_path, speech_lang)
+    translated_input = await asyncio.to_thread(t.translate, audio_input, lang, engine_lang)
     print(f"Question translated to Chinese: {translated_input}")
     chatbot_response = await c.chatbot(translated_input)
 
-    translated_retrieved = []
-    for item in chatbot_response['retrieved']:
-        translated_law_text = t.translate(item['law_text'], engine_lang, lang)
-        translated_law_chapter = t.translate(item['law_chapter'],  engine_lang, lang)
-        translated_retrieved.append({
+    async def translate_item(item):
+        translated_law_text = await asyncio.to_thread(t.translate, item['law_text'], engine_lang, lang)
+        translated_law_chapter = await asyncio.to_thread(t.translate, item['law_chapter'], engine_lang, lang)
+        return {
             'law_text': translated_law_text,
             'law_id': item['law_id'],
             'law_chapter': translated_law_chapter
-        })
-    translated_response = t.translate(chatbot_response['response'],  engine_lang, lang)
-    saveDB("Audio", lang, audio_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
+        }
+
+    translated_retrieved = await asyncio.gather(*[translate_item(item) for item in chatbot_response['retrieved']])
+    translated_response = await asyncio.to_thread(t.translate, chatbot_response['response'], engine_lang, lang)
+    documentId = saveDB("Audio", lang, audio_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
     return {
         'userInput': audio_input,
         'response': translated_response,
-        'retrieved': translated_retrieved
+        'retrieved': translated_retrieved,
+        'documentId': documentId
     }
                                             
 def is_supported_audio(file_path):
@@ -163,7 +170,8 @@ async def chat():
             response = await text(lang, user_input)
             return jsonify({
                 'response': response['response'],
-                'retrieved': response['retrieved']
+                'retrieved': response['retrieved'],
+                'documentId': response['documentId']
             })
         elif input_type == 'speech':
             speech_output = await speech(lang)
@@ -174,7 +182,8 @@ async def chat():
             return jsonify({
                 'user_input': user_input,
                 'response': response,
-                'retrieved': retrieved
+                'retrieved': retrieved,
+                'documentId': speech_output['documentId']
             }) 
         
     lang = session.get('lang')
@@ -198,7 +207,8 @@ async def upload_audio():
     return jsonify(
         {'user_input': response['userInput'],
          'response': response['response'],
-         'retrieved': response['retrieved']}
+         'retrieved': response['retrieved'],
+         'documentId': response['documentId']}
     )
 
 @app.route('/tts', methods=['POST'])
@@ -270,6 +280,26 @@ def transliterate():
     print(f"Transliterate suggestions: {suggestions}")
     return jsonify(suggestions=suggestions)
 
+@app.route('/update_duration', methods=['POST'])
+def update_duration():
+    documentId = request.json['documentId']
+    print(f"Updating duration for document {documentId}")
+    duration = round(request.json['duration'], 2)
+    mongo.db.query.update_one({'_id': ObjectId(documentId)}, {'$set': {'duration': duration}})
+    return jsonify({'message': 'Duration updated successfully'}), 200
+
+@app.route('/rate', methods=['POST'])
+def rate():
+    documentId = request.json['documentId']
+    rating = request.json['rating']
+    print(f"Submitting rating for document {documentId} with rating {rating}")
+    result = mongo.db.query.update_one({'_id': ObjectId(documentId)}, {'$set': {'rating': rating}})
+    print(f"Matched count: {result.matched_count}, Modified count: {result.modified_count}")
+    if result.matched_count == 0:
+        return jsonify({'message': 'Document not found'}), 404
+    if result.modified_count == 0:
+        return jsonify({'message': 'Document not modified'}), 304
+    return jsonify({'message': 'Rating submitted successfully'}), 200
 
 if __name__ == "__main__":
     app.run()
