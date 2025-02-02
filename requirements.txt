@@ -5,3 +5,5 @@ flask_pymongo
 requests
 azure-cognitiveservices-speech
 ai4bharat-transliteration
+omegaconf==2.3.0
+fairseq==0.12.1

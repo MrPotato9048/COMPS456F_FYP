@@ -1,4 +1,6 @@
+.deployment
 .env
+.vscode
 __pycache__
 uploads
 static
