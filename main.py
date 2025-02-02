@@ -21,8 +21,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 translator_languages = ["en", "ne", "ur", "fil"] 
 speech_languages = ["en-US", "ne-NP", "ur-IN", "fil-PH"]
 engine_lang = "zh-Hant"
-engine = tr.engineInit(romanize=False) # Initialize transliteration engine
-rengine = tr.engineInit(romanize=True) # Initialize romanization engine
 
 def saveDB(inputType, lang, inputText, translatedInput, outputText, translatedOutput):
     # Save data to MongoDB, not sure if to save tts audio as well
@@ -272,11 +270,11 @@ def delete():
     
 
 @app.route('/transliterate', methods=['GET'])
-def transliterate():
+async def transliterate():
     text = request.args.get('text')
     lang = request.args.get('lang')
 
-    suggestions = tr.transliterate(engine, text, lang)
+    suggestions = await tr.transliterate(text, lang)
     print(f"Transliterate suggestions: {suggestions}")
     return jsonify(suggestions=suggestions)
 

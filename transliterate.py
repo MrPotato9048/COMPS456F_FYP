@@ -1,12 +1,15 @@
-from ai4bharat.transliteration import XlitEngine
+import aiohttp
 
-def engineInit(romanize):
-    if romanize:
-        return XlitEngine(["ne", "ur"], beam_width=10, src_script_type="indic")
-    return XlitEngine(["ne", "ur"], beam_width=10) # Initialize engine with loading Nepali and Urdu dictionaries into RAM
+async def transliterate(text, source_lang): # gain uri from Google Input Tools, may not work if patched
+    match source_lang:
+        case 'ne':
+            itc = 'ne-t-i0-und'
+        case 'ur':
+            itc = 'ur-t-i0-und'
+        case _:
+            raise ValueError("Unsupported language")
 
-def transliterate(engine, text, source_lang):
-    return engine.translit_word(text, lang_code=source_lang, topk=5)
-
-def romanize(engine, text, source_lang): # not sure if needed
-    return engine.translit_sentence(text, lang_code=source_lang)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f'https://inputtools.google.com/request?text={text}&itc={itc}&num=5&cp=0&cs=1&ie=utf-8&oe=utf-8&app=test') as response:
+            result = await response.json()
+            return result[1][0][1]
