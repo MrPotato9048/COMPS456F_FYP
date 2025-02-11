@@ -4,13 +4,13 @@
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
     <div class="card" style="width: 20rem;">
         <div class="card-body">
-            <h5 class="card-title text-center">Login</h5>
+            <h5 class="card-title text-center">Developer Login</h5>
             {% if error %}
-            <div class="alert alert-danger" role="alert">
+            <div class="alert alert-danger" role="alert" style="margin-top: 20px;">
                 {{ error }}
             </div>
             {% endif %}
-            <form method="POST" action="/login">
+            <form method="POST" action="/login" style="margin-top: 20px;">
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" class="form-control" id="username" name="username" required>
@@ -19,7 +19,7 @@
                     <label for="password">Password</label>
                     <input type="password" class="form-control" id="password" name="password" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">Login</button>
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top: 20px;">Login</button>
             </form>
         </div>
     </div>

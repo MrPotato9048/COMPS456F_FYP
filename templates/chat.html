@@ -1,6 +1,21 @@
 {% extends "base.html" %}
 
 {% block content %}
+    <div class="modal fade" id="lawModal" tabindex="-1" role="dialog" aria-labelledby="lawModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="lawModalLabel">Detailed Law</h5>
+                </div>
+                <div class="modal-body" id="lawModalBody">
+                    <!-- Law details will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="close-law-modal-btn" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <input type="hidden" id="lang" value="{{ session.lang }}">
     <div class="chat-container">
         <div class="chat-header">
@@ -38,7 +53,7 @@
                     Magpadala
                 {% endif %}
             </button>
-            <button class="btn btn-secondary" id="speech-btn" onclick="startSpeechRecognition()">
+            <button class="btn btn-secondary" id="speech-btn">
                 {% if lang == 'en' %}
                     Speak
                 {% elif lang == 'ne' %}
@@ -59,18 +74,27 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="speech-modal" tabindex="-1" aria-labelledby="speech-modal-label" aria-hidden="true">
-        <div class="modal-dialog">
+    <div class="modal fade" id="speech-modal" tabindex="-1" role="dialog" aria-labelledby="speech-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="speech-modal-label">Speak into your microphone</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
                 <div class="modal-body">
                     <p>Please speak into your microphone.</p>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" id="cancel-speech-btn" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="surveyPopup" tabindex="-1" role="dialog" aria-labelledby="surveyPopupLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <p>Would you like to rate your experience with the chatbot so far?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="close-surveypopup-button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="showSurvey()">Yes</button>
             </div>
         </div>
     </div>
@@ -83,12 +107,24 @@
             const chatMessagesDiv = document.querySelector('.chat-messages');
             const transliterationBtn = document.getElementById('transliteration-btn'); 
             const suggestionsDiv = document.getElementById('suggestions');
+            const cancelSpeechButton = document.getElementById('cancel-speech-btn');
+            const closeSurveyPopupButton = document.getElementById('close-surveypopup-button');
+            const closeLawModalButton = document.getElementById('close-law-modal-btn');
+            let randomResponses = Math.floor(Math.random() * 4) + 2; // 2-3 responses before survey popup
+            let responseCount = 0;
             let isTransliterationOn = false;
             let currentSuggestionIndex = -1; // Track the currently highlighted suggestion
             let audio = null;
             let currentButton = null;
             let startTime;
             let documentId;
+
+            userInputField.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && userInputField.value.trim() != '') {
+                    e.preventDefault();
+                    sendBtn.click();
+                }
+            })
 
             sendBtn.addEventListener('click', () => {
                 const userInput = userInputField.value.trim();
@@ -103,17 +139,17 @@
         
             function renderUser(userInput) {
                 var langTexts = {
-                    'en': 'You:',
-                    'ur': 'آپ:',
-                    'ne': 'तपाईं:',
-                    'fil': 'Iyo:'
+                    'en': 'You',
+                    'ur': 'آپ',
+                    'ne': 'तपाईं',
+                    'fil': 'Iyo'
                 };
                 var userText = langTexts[lang];
-                var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${userText}</span><p>${userInput}</p></div>`;
+                var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span style="direction:rtl;">${userText}</span><p>${userInput}</p></div>`;
                 chatMessagesDiv.innerHTML += messageHTML;
             }
         
-            function startSpeechRecognition() {
+            speechBtn.addEventListener('click', () => {
                 $('#speech-modal').modal('show');
                 fetch('/chat', {
                     method: 'POST',
@@ -126,7 +162,11 @@
                     $('#speech-modal').modal('hide');
                 })
                 .catch(error => console.error(error));
-            }
+            });
+
+            cancelSpeechButton.addEventListener('click', () => {
+                $('#speech-modal').modal('hide');
+            });
         
             function sendRequestToPython(inputType, userInput) {
                 fetch('/chat', {
@@ -142,38 +182,36 @@
                 })
                 .catch(error => console.error(error));
             }
+
+            function incrementResponseCount() {
+                responseCount++;
+                if (responseCount === randomResponses) {
+                    $('#surveyPopup').modal('show');
+                    randomResponses = Math.floor(Math.random() * 4) + 2; // Reset random respones number
+                    responseCount = 0;
+                }
+            }
         
             function renderChatMessages(data) {
                 var langTexts = {
-                    'en': 'Bot:',
-                    'ur': 'باٹ:',
-                    'ne': 'बोट:',
-                    'fil': 'Bot:'
-                };
-                var userTexts = {
-                    'en': 'You:',
-                    'ur': 'آپ:',
-                    'ne': 'तपाईं:',
-                    'fil': 'Iyo:'
+                    'en': 'Bot',
+                    'ur': 'باٹ',
+                    'ne': 'बोट',
+                    'fil': 'Bot'
                 };
                 var botText = langTexts[lang];
-                var userText = userTexts[lang];
-                
-                // Show user input
-                if (data.user_input) {
-                    var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${userText}</span><p>${data.user_input}</p></div>`;
-                    chatMessagesDiv.innerHTML += messageHTML;
-                }
         
                 // Show loading indicator for chatbot response
                 var loadingHTML = `<div class="message bot loading" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${botText}</span><p>Thinking...</p></div>`;
                 chatMessagesDiv.innerHTML += loadingHTML;
         
                 // Fetch TTS and update the response once ready
-                fetchTTS(data.response, document.querySelector('.message.bot.loading'), data.retrieved);
+                fetchTTS(data.documentId, data.response, document.querySelector('.message.bot.loading'), data.retrieved);
+
+                incrementResponseCount();
             }
         
-            function fetchTTS(text, loadingElement, retrievedLaws) {
+            function fetchTTS(documentId, text, loadingElement, retrievedLaws) {
                 fetch('/tts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -201,6 +239,12 @@
                             body: JSON.stringify({ documentId: documentId, duration: duration })
                         });
 
+                        // Create a new div for the response
+                        var responseDiv = document.createElement('div');
+                        responseDiv.id = `response ${documentId}`;
+                        responseDiv.className = 'message bot';
+                        responseDiv.classList.add('response-container');
+
                         // Update the loading element with the actual response and TTS button
                         var formattedResponse = text.replace(/\n/g, '<br>');
                         var responseHTML = `
@@ -208,81 +252,28 @@
                             <p>${formattedResponse}</p>
                             <button class="btn btn-success" onclick="toggleTTS('${data.audio_url}', this)"><i class="fas fa-pause"></i></button>
                         `;
-                        loadingElement.innerHTML = responseHTML;
-                        loadingElement.classList.remove('loading');
-                        loadingElement.querySelector('button').classList.remove('btn-success');
-                        loadingElement.querySelector('button').classList.add('btn-danger');
-                        currentButton = loadingElement.querySelector('button');
+                        responseDiv.innerHTML = responseHTML;
 
-                        // Add the law table toggle button and law table
+                        // Append the responseDiv to the chatMessagesDiv
+                        chatMessagesDiv.appendChild(responseDiv);
+
+                        // Remove the loadingElement
+                        loadingElement.remove();
+
+                        // Update the button classes after it has been added to the DOM
+                        var ttsButton = responseDiv.querySelector('button');
+                        ttsButton.classList.remove('btn-success');
+                        ttsButton.classList.add('btn-danger');
+                        currentButton = ttsButton;
+
+                        // Add the law table toggle button
                         if (retrievedLaws && retrievedLaws.length > 0) {
-                            var toggleButtonHTML = `<button class="btn btn-info" id="toggle-table-btn">Show Detailed Law</button>`;
-                            loadingElement.innerHTML += toggleButtonHTML;
-
-                            var lawsHTML = '<table class="table" style="display: none;"><tbody>';
-                            retrievedLaws.forEach(law => {
-                                lawsHTML += `
-                                    <tr>
-                                        <td>
-                                            <h4>Cap. ${law.law_id} (${law.law_chapter})</h4>
-                                            <p>${law.law_text}</p>
-                                        </td>
-                                    </tr>
-                                `;
-                            });
-                            lawsHTML += '</tbody></table>';
-                            loadingElement.innerHTML += lawsHTML;
-
-                            // Event listener for the toggle button
-                            document.getElementById('toggle-table-btn').addEventListener('click', function() {
-                                var table = loadingElement.querySelector('.table');
-                                if (table.style.display === 'none') {
-                                    table.style.display = 'table';
-                                    this.textContent = 'Hide Detailed Law';
-                                } else {
-                                    table.style.display = 'none';
-                                    this.textContent = 'Show Detailed Law';
-                                }
-                            });
+                            var toggleButtonHTML = `<button class="btn btn-info" onclick="toggleLawDetails('${documentId}')">Show Detailed Law</button>`;
+                            responseDiv.innerHTML += toggleButtonHTML;
                         }
-                        var ratingHTML = `
-                            <div class="rating">
-                                <span class="rate-message">Please rate your experience with the response (1: least satisfied - 5: most satisfied): </span>
-                                <div class="star d-block mt-2">
-                                    <input type="radio" id="star5" name="rating" data-value="5">
-                                    <label for="star5" class="bi bi-star-fill"></label>
-                                    <input type="radio" id="star4" name="rating" data-value="4">
-                                    <label for="star4" class="bi bi-star-fill"></label>
-                                    <input type="radio" id="star3" name="rating" data-value="3">
-                                    <label for="star3" class="bi bi-star-fill"></label>
-                                    <input type="radio" id="star2" name="rating" data-value="2">
-                                    <label for="star2" class="bi bi-star-fill"></label>
-                                    <input type="radio" id="star1" name="rating" data-value="1">
-                                    <label for="star1" class="bi bi-star-fill"></label>
-                                </div>
-                                <span class="thank-you-message" style="display: none;">Thank you for your response!</span>
-                            </div>
-                        `;
-                        loadingElement.innerHTML += ratingHTML;
 
-                        const stars = loadingElement.querySelectorAll('.star:not(.readonly) label');
-                        const thankYouMessage = loadingElement.querySelector('.thank-you-message');
-                        stars.forEach(star => {
-                            star.addEventListener('click', function() {
-                                this.style.transform = 'scale(1.2)';
-                                setTimeout(() => {
-                                    this.style.transform = 'scale(1)';
-                                }, 200);
-                                const value = this.previousElementSibling.getAttribute('data-value');
-                                thankYouMessage.style.display = 'block';
-                                fetch('/rate', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ documentId: documentId, rating: value })
-                                });
-                            });
-                            star.disabled = true;
-                        });
+                        // Append the responseDiv to the chatMessagesDiv
+                        chatMessagesDiv.appendChild(responseDiv);
 
                         audio.onended = () => {
                             if (currentButton) {
@@ -304,6 +295,32 @@
                 });
             }
 
+            // Separate function to toggle the detailed law
+            window.toggleLawDetails = function(documentId) {
+                fetch(`/getLaws?documentId=${documentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.laws && data.laws.length > 0) {
+                            var lawsHTML = '';
+                            data.laws.forEach(law => {
+                                lawsHTML += `
+                                    <div>
+                                        <h4>Cap. ${law.law_id} (${law.law_chapter})</h4>
+                                        <p>${law.law_text}</p>
+                                    </div>
+                                `;
+                            });
+                            document.getElementById('lawModalBody').innerHTML = lawsHTML;
+                            $('#lawModal').modal('show');
+                        } else {
+                            console.error(`No law details found for documentId: ${documentId}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`Error fetching law details for documentId: ${documentId}`, error);
+                    });
+            };
+
             window.toggleTTS = function(audioUrl, button) {
                 if (audio && !audio.paused) {
                     audio.pause();
@@ -323,6 +340,80 @@
                     button.classList.remove('btn-success');
                     button.classList.add('btn-danger');
                 }
+            }
+
+            closeSurveyPopupButton.addEventListener('click', function() {
+                $('#surveyPopup').modal('hide');
+            });
+
+            closeLawModalButton.addEventListener('click', function() {
+                $('#lawModal').modal('hide');
+            });
+
+                        window.showSurvey = function() {
+                const surveyPopup = $('#surveyPopup');
+                surveyPopup.find('.modal-body').html(`
+                    <div class="rating">
+                        <span class="rate-message">Please rate your experience:</span>
+                        <div class="category">
+                            <span>Response Time:</span>
+                            <div class="star d-block mt-2">
+                                <input type="radio" id="responseTime5" name="responseTime" data-value="5">
+                                <label for="responseTime5" class="bi bi-star-fill"></label>
+                                <input type="radio" id="responseTime4" name="responseTime" data-value="4">
+                                <label for="responseTime4" class="bi bi-star-fill"></label>
+                                <input type="radio" id="responseTime3" name="responseTime" data-value="3">
+                                <label for="responseTime3" class="bi bi-star-fill"></label>
+                                <input type="radio" id="responseTime2" name="responseTime" data-value="2">
+                                <label for="responseTime2" class="bi bi-star-fill"></label>
+                                <input type="radio" id="responseTime1" name="responseTime" data-value="1">
+                                <label for="responseTime1" class="bi bi-star-fill"></label>
+                            </div>
+                        </div>
+                        <div class="category">
+                            <span>Accuracy:</span>
+                            <div class="star d-block mt-2">
+                                <input type="radio" id="accuracy5" name="accuracy" data-value="5">
+                                <label for="accuracy5" class="bi bi-star-fill"></label>
+                                <input type="radio" id="accuracy4" name="accuracy" data-value="4">
+                                <label for="accuracy4" class="bi bi-star-fill"></label>
+                                <input type="radio" id="accuracy3" name="accuracy" data-value="3">
+                                <label for="accuracy3" class="bi bi-star-fill"></label>
+                                <input type="radio" id="accuracy2" name="accuracy" data-value="2">
+                                <label for="accuracy2" class="bi bi-star-fill"></label>
+                                <input type="radio" id="accuracy1" name="accuracy" data-value="1">
+                                <label for="accuracy1" class="bi bi-star-fill"></label>
+                            </div>
+                        </div>
+                        <div class="category">
+                            <span>Do you have any other suggestions? Feel free to write them here:</span>
+                            <textarea id="userSuggestions" class="form-control mt-2" rows="3" placeholder="Enter your suggestions here..."></textarea>
+                        </div>
+                    </div>
+                `);
+                surveyPopup.find('.modal-footer').html(`
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submitSurvey">Submit</button>
+                `);
+                surveyPopup.modal('show');
+            
+                document.getElementById('submitSurvey').addEventListener('click', function() {
+                    const responseTimeRating = document.querySelector('input[name="responseTime"]:checked').getAttribute('data-value');
+                    const accuracyRating = document.querySelector('input[name="accuracy"]:checked').getAttribute('data-value');
+                    const userSuggestions = document.getElementById('userSuggestions').value;
+            
+                    fetch('/rate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ responseTime: responseTimeRating, accuracy: accuracyRating, suggestions: userSuggestions })
+                    }).then(() => {
+                        surveyPopup.find('.modal-body').html('<span class="thank-you-message">Thank you for your response!</span>');
+                        surveyPopup.find('.modal-footer').html('<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>');
+                        setTimeout(() => {
+                            surveyPopup.modal('hide');
+                        }, 3000);
+                    });
+                });
             }
         
             // Toggle transliteration on button click
@@ -431,34 +522,36 @@
         });
     </script>
 
-    <!-- For audio upload -->
-    <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" name="file" accept="audio/*" required>
-        <button type="submit">Upload Audio</button>
-    </form>
+    {% if session.login %}
+        <!-- For audio upload -->
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" name="file" accept="audio/*" required>
+            <button type="submit">Upload Audio</button>
+        </form>
 
-    <div id="response"></div>
+        <div id="response"></div>
 
-    <script>
-        $(document).ready(function() {
-            $('#uploadForm').on('submit', function(e) {
-                e.preventDefault();
-                var formData = new FormData(this);
+        <script>
+            $(document).ready(function() {
+                $('#uploadForm').on('submit', function(e) {
+                    e.preventDefault();
+                    var formData = new FormData(this);
 
-                $.ajax({
-                    url: '/upload',
-                    type: 'POST',
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    success: function(data) {
-                        renderChatMessages(data);
-                    },
-                    error: function(jqXHR) {
-                        $('#response').html('<p>Error: ' + jqXHR.responseJSON.error + '</p>');
-                    }
+                    $.ajax({
+                        url: '/upload',
+                        type: 'POST',
+                        data: formData,
+                        contentType: false,
+                        processData: false,
+                        success: function(data) {
+                            renderChatMessages(data);
+                        },
+                        error: function(jqXHR) {
+                            $('#response').html('<p>Error: ' + jqXHR.responseJSON.error + '</p>');
+                        }
+                    });
                 });
             });
-        });
-    </script>
+        </script>
+    {% endif %}
 {% endblock %}
