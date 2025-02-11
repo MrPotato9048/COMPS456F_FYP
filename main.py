@@ -5,8 +5,8 @@ from flask_pymongo import PyMongo
 import string, os, mimetypes, asyncio
 import stt, tts, chatbot as c, translator as t, transliterate as tr
 
-"""from dotenv import load_dotenv
-load_dotenv()"""
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 app.debug = True # set to debug mode
@@ -221,15 +221,20 @@ def text2speech():
     else:
         return jsonify({'message': 'TTS failed'}), 500
 
+@app.route('/getLaws', methods=['GET'])
+def get_laws():
+    document_id = request.args.get('documentId')
+    query = mongo.db.query.find_one({'_id': ObjectId(document_id)})
+    retrieved = query.get('translatedOutput', {}).get('retrieved', [])
+    return jsonify({"laws": retrieved})
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = request.args.get('error')
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        # Debug
-        print(f"Received username: {username}, password: {password}")
-        print(f"Expected username: {os.getenv('ADMIN_USERNAME')}, password: {os.getenv('ADMIN_PASSWORD')}")
         if username == os.getenv('ADMIN_USERNAME') and password == os.getenv('ADMIN_PASSWORD'):
             session['login'] = True
             return redirect(url_for('dev'))
@@ -237,7 +242,7 @@ def login():
             return render_template('login.html', error='Invalid credentials')
     return render_template('login.html', error=error)
 
-@app.route('/logout', methods=['POST'])
+@app.route('/logout', methods=['GET'])
 def logout():
     session.clear()
     return redirect(url_for('chat'))
@@ -246,13 +251,25 @@ def logout():
 def dev():
     if not session.get('login'):
         return redirect(url_for('login', error='Login to access'))
+    
     queries = mongo.db.query.find()
     processed_queries = []
     for query in queries:
         query['_id'] = str(query['_id'])
         query['datetime'] = query['datetime'].isoformat() if isinstance(query['datetime'], datetime) else query['datetime']
         processed_queries.append(query)
-    return render_template('dev.html', queries=processed_queries)
+    
+    ratings = mongo.db.rating.find()
+    rateTime = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
+    rateAccuracy = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
+    suggestions = []
+    for rating in ratings:
+        rateTime[str(rating['responseTime'])] += 1
+        rateAccuracy[str(rating['accuracy'])] += 1
+        if 'suggestions' in rating and rating['suggestions'].strip():
+            suggestions.append(rating['suggestions'])
+    
+    return render_template('dev.html', queries=processed_queries, rateTime=rateTime, rateAccuracy=rateAccuracy, suggestions=suggestions)
 
 @app.route('/delete', methods=['DELETE'])
 def delete():
@@ -288,15 +305,10 @@ def update_duration():
 
 @app.route('/rate', methods=['POST'])
 def rate():
-    documentId = request.json['documentId']
-    rating = request.json['rating']
-    print(f"Submitting rating for document {documentId} with rating {rating}")
-    result = mongo.db.query.update_one({'_id': ObjectId(documentId)}, {'$set': {'rating': rating}})
-    print(f"Matched count: {result.matched_count}, Modified count: {result.modified_count}")
-    if result.matched_count == 0:
-        return jsonify({'message': 'Document not found'}), 404
-    if result.modified_count == 0:
-        return jsonify({'message': 'Document not modified'}), 304
+    responseTime = request.json['responseTime']
+    accuracy = request.json['accuracy']
+    suggestions = request.json['suggestions']
+    mongo.db.rating.insert_one({'responseTime': responseTime, 'accuracy': accuracy, 'suggestions': suggestions})
     return jsonify({'message': 'Rating submitted successfully'}), 200
 
 if __name__ == "__main__":
