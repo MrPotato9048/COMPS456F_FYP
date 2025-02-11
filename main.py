@@ -5,8 +5,8 @@ from flask_pymongo import PyMongo
 import string, os, mimetypes, asyncio
 import stt, tts, chatbot as c, translator as t, transliterate as tr
 
-from dotenv import load_dotenv
-load_dotenv()
+"""from dotenv import load_dotenv
+load_dotenv()"""
 
 app = Flask(__name__)
 app.debug = True # set to debug mode
