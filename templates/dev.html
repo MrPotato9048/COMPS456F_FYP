@@ -228,13 +228,17 @@
 
     function deleteQuery(queryId) {
         if (confirm('Are you sure you want to delete this query?')) {
-            fetch(`/delete?queryId=${queryId}`, {
+            fetch(`/delete`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ queryIds: [queryId] })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.message) {
+                    if ($('#query-modal').modal('show')) {
+                        $('#query-modal').modal('hide');
+                    }
                     showAlert('success', data.message);
                     setTimeout(() => {
                         window.location.reload();
