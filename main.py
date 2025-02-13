@@ -256,32 +256,34 @@ def dev():
     processed_queries = []
     for query in queries:
         query['_id'] = str(query['_id'])
-        query['datetime'] = query['datetime'].isoformat() if isinstance(query['datetime'], datetime) else query['datetime']
+        if isinstance(query['datetime'], datetime):
+            query['datetime'] = query['datetime'].strftime('%Y-%m-%d %H:%M:%S')
         processed_queries.append(query)
+    
+    languages = ["en", "ne", "ur", "fil"]
     
     ratings = mongo.db.rating.find()
     rateTime = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
     rateAccuracy = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
-    suggestions = []
+    suggestions = mongo.db.rating.find({'suggestions': {'$exists': True}})
     for rating in ratings:
         rateTime[str(rating['responseTime'])] += 1
         rateAccuracy[str(rating['accuracy'])] += 1
-        if 'suggestions' in rating and rating['suggestions'].strip():
-            suggestions.append(rating['suggestions'])
     
-    return render_template('dev.html', queries=processed_queries, rateTime=rateTime, rateAccuracy=rateAccuracy, suggestions=suggestions)
+    return render_template('dev.html', queries=processed_queries, languages=languages, rateTime=rateTime, rateAccuracy=rateAccuracy, suggestions=suggestions)
 
 @app.route('/delete', methods=['DELETE'])
 def delete():
-    query_id = request.args.get('queryId')
+    query_ids = request.json.get('queryIds')
     if not session.get('login'):
         return redirect(url_for('login', error='Login to access'))
     try:
-        result = mongo.db.query.delete_one({'_id': ObjectId(query_id)})
-        if result.deleted_count == 1:
-            return jsonify({'message': 'Query deleted successfully'}), 200
+        object_ids = [ObjectId(query_id) for query_id in query_ids]
+        result = mongo.db.query.delete_many({'_id': {'$in': object_ids}})
+        if result.deleted_count > 0:
+            return jsonify({'message': f'{result.deleted_count} queries deleted successfully'}), 200
         else:
-            return jsonify({'error': 'Query not found or already deleted'}), 404
+            return jsonify({'error': 'No queries found or already deleted'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
