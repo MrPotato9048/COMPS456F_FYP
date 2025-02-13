@@ -94,7 +94,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="showSurvey()">Yes</button>
+                    <button type="button" class="btn btn-primary" onclick="showSurvey()">Yes</button>
             </div>
         </div>
     </div>
@@ -513,7 +513,7 @@
     </script>
 
     {% if session.login %}
-        <!-- For audio upload -->
+        <!-- For audio upload (for some reason it only appears inside the survey modal lmao) -->
         <form id="uploadForm" enctype="multipart/form-data">
             <input type="file" name="file" accept="audio/*" required>
             <button type="submit">Upload Audio</button>

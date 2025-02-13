@@ -281,7 +281,10 @@ def delete():
         object_ids = [ObjectId(query_id) for query_id in query_ids]
         result = mongo.db.query.delete_many({'_id': {'$in': object_ids}})
         if result.deleted_count > 0:
-            return jsonify({'message': f'{result.deleted_count} queries deleted successfully'}), 200
+            if result.deleted_count == 1:
+                return jsonify({'message': f'{result.deleted_count} query deleted successfully'}), 200
+            else:
+                return jsonify({'message': f'{result.deleted_count} queries deleted successfully'}), 200
         else:
             return jsonify({'error': 'No queries found or already deleted'}), 404
     except Exception as e:
