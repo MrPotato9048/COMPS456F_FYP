@@ -11,7 +11,7 @@
                     <!-- Law details will be inserted here -->
                 </div>
                 <div class="modal-footer">
-                    <button type="button" id="close-law-modal-btn" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" id="close-law-modal-btn" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -81,7 +81,7 @@
                     <p>Please speak into your microphone.</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" id="cancel-speech-btn" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" id="cancel-speech-btn" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 </div>
             </div>
         </div>
@@ -93,8 +93,8 @@
                     <p>Would you like to rate your experience with the chatbot so far?</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" id="close-surveypopup-button" class="btn btn-secondary" data-dismiss="modal">No</button>
-                    <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="showSurvey()">Yes</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="showSurvey()">Yes</button>
             </div>
         </div>
     </div>
@@ -108,8 +108,6 @@
             const transliterationBtn = document.getElementById('transliteration-btn'); 
             const suggestionsDiv = document.getElementById('suggestions');
             const cancelSpeechButton = document.getElementById('cancel-speech-btn');
-            const closeSurveyPopupButton = document.getElementById('close-surveypopup-button');
-            const closeLawModalButton = document.getElementById('close-law-modal-btn');
             let randomResponses = Math.floor(Math.random() * 4) + 2; // 2-3 responses before survey popup
             let responseCount = 0;
             let isTransliterationOn = false;
@@ -342,15 +340,7 @@
                 }
             }
 
-            closeSurveyPopupButton.addEventListener('click', function() {
-                $('#surveyPopup').modal('hide');
-            });
-
-            closeLawModalButton.addEventListener('click', function() {
-                $('#lawModal').modal('hide');
-            });
-
-                        window.showSurvey = function() {
+            window.showSurvey = function() {
                 const surveyPopup = $('#surveyPopup');
                 surveyPopup.find('.modal-body').html(`
                     <div class="rating">
@@ -392,7 +382,7 @@
                     </div>
                 `);
                 surveyPopup.find('.modal-footer').html(`
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="submitSurvey">Submit</button>
                 `);
                 surveyPopup.modal('show');
@@ -408,7 +398,7 @@
                         body: JSON.stringify({ responseTime: responseTimeRating, accuracy: accuracyRating, suggestions: userSuggestions })
                     }).then(() => {
                         surveyPopup.find('.modal-body').html('<span class="thank-you-message">Thank you for your response!</span>');
-                        surveyPopup.find('.modal-footer').html('<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>');
+                        surveyPopup.find('.modal-footer').html('<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>');
                         setTimeout(() => {
                             surveyPopup.modal('hide');
                         }, 3000);
