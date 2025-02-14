@@ -235,10 +235,10 @@
             })
             .then(response => response.json())
             .then(data => {
+                if ($('#query-modal').is(':visible')) {
+                    $('#query-modal').modal('hide');
+                }
                 if (data.message) {
-                    if ($('#query-modal').modal('show')) {
-                        $('#query-modal').modal('hide');
-                    }
                     showAlert('success', data.message);
                     setTimeout(() => {
                         window.location.reload();
