@@ -134,23 +134,39 @@
                 color: #666;
             }
             .star {
-                direction: rtl;
-                display: inline-block;
-                cursor: pointer;
+                display: flex;
+                justify-content: center;
+            }
+            .text-star {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin-right: 10px;
+                width: 60px;
             }
             .star input {
                 display: none;
             }
-            .star label {
+            .star-label {
+                font-size: 0.75rem;
+                margin-bottom: 5px;
+            }
+            .star .bi-star-fill {
                 font-size: 24px;
                 cursor: pointer;
                 color: #ccc;
                 padding: 0 2px;
                 transition: all 0.2s ease;
             }
-            .star label:hover,
-            .star label:hover~label,
-            .star input:checked~label {
+            .star input:checked ~ .bi-star-fill {
+                color: #666;
+            }
+            .star input:checked ~ .bi-star-fill ~ .bi-star-fill {
+                color: #ccc;
+            }
+            .star .bi-star-fill:hover,
+            .star .bi-star-fill:hover ~ .bi-star-fill,
+            .star input:checked ~ .bi-star-fill {
                 color: #666;
             }
             .thank-you-message {

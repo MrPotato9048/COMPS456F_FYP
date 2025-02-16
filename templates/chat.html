@@ -344,41 +344,71 @@
                 const surveyPopup = $('#surveyPopup');
                 surveyPopup.find('.modal-body').html(`
                     <div class="rating">
-                        <span class="rate-message">Please rate your experience:</span>
-                        <div class="category">
-                            <span>Response Time:</span>
-                            <div class="star d-block mt-2">
-                                <input type="radio" id="responseTime5" name="responseTime" data-value="5">
-                                <label for="responseTime5" class="bi bi-star-fill"></label>
-                                <input type="radio" id="responseTime4" name="responseTime" data-value="4">
-                                <label for="responseTime4" class="bi bi-star-fill"></label>
-                                <input type="radio" id="responseTime3" name="responseTime" data-value="3">
-                                <label for="responseTime3" class="bi bi-star-fill"></label>
-                                <input type="radio" id="responseTime2" name="responseTime" data-value="2">
-                                <label for="responseTime2" class="bi bi-star-fill"></label>
-                                <input type="radio" id="responseTime1" name="responseTime" data-value="1">
-                                <label for="responseTime1" class="bi bi-star-fill"></label>
-                            </div>
+                    <span class="rate-message">Please rate your experience:</span>
+                    <div class="category">
+                        <span>Response Time (How long did you wait for the responses?):</span>
+                        <div class="star d-flex align-items-center mt-2">
+                        <div class="text-star">
+                            <input type="radio" id="responseTime1" name="responseTime" data-value="1">
+                            <label for="responseTime1" class="star-label">Poor</label>
+                            <label for="responseTime1" class="bi bi-star-fill"></label>
                         </div>
-                        <div class="category">
-                            <span>Accuracy:</span>
-                            <div class="star d-block mt-2">
-                                <input type="radio" id="accuracy5" name="accuracy" data-value="5">
-                                <label for="accuracy5" class="bi bi-star-fill"></label>
-                                <input type="radio" id="accuracy4" name="accuracy" data-value="4">
-                                <label for="accuracy4" class="bi bi-star-fill"></label>
-                                <input type="radio" id="accuracy3" name="accuracy" data-value="3">
-                                <label for="accuracy3" class="bi bi-star-fill"></label>
-                                <input type="radio" id="accuracy2" name="accuracy" data-value="2">
-                                <label for="accuracy2" class="bi bi-star-fill"></label>
-                                <input type="radio" id="accuracy1" name="accuracy" data-value="1">
-                                <label for="accuracy1" class="bi bi-star-fill"></label>
-                            </div>
+                        <div class="text-star">
+                            <input type="radio" id="responseTime2" name="responseTime" data-value="2">
+                            <label for="responseTime2" class="star-label">Fair</label>
+                            <label for="responseTime2" class="bi bi-star-fill"></label>
                         </div>
-                        <div class="category">
-                            <span>Do you have any other suggestions? Feel free to write them here:</span>
-                            <textarea id="userSuggestions" class="form-control mt-2" rows="3" placeholder="Enter your suggestions here..."></textarea>
+                        <div class="text-star">
+                            <input type="radio" id="responseTime3" name="responseTime" data-value="3">
+                            <label for="responseTime3" class="star-label">Good</label>
+                            <label for="responseTime3" class="bi bi-star-fill"></label>
                         </div>
+                        <div class="text-star">
+                            <input type="radio" id="responseTime4" name="responseTime" data-value="4">
+                            <label for="responseTime4" class="star-label">Very good</label>
+                            <label for="responseTime4" class="bi bi-star-fill"></label>
+                        </div>
+                        <div class="text-star">
+                            <input type="radio" id="responseTime5" name="responseTime" data-value="5">
+                            <label for="responseTime5" class="star-label">Excellent</label>
+                            <label for="responseTime5" class="bi bi-star-fill"></label>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="category">
+                        <span>Accuracy (How accurate are the responses for your questions?):</span>
+                        <div class="star d-flex align-items-center mt-2">
+                        <div class="text-star">
+                            <input type="radio" id="accuracy1" name="accuracy" data-value="1">
+                            <label for="accuracy1" class="star-label">Poor</label>
+                            <label for="accuracy1" class="bi bi-star-fill"></label>
+                        </div>
+                        <div class="text-star">
+                            <input type="radio" id="accuracy2" name="accuracy" data-value="2">
+                            <label for="accuracy2" class="star-label">Fair</label>
+                            <label for="accuracy2" class="bi bi-star-fill"></label>
+                        </div>
+                        <div class="text-star">
+                            <input type="radio" id="accuracy3" name="accuracy" data-value="3">
+                            <label for="accuracy3" class="star-label">Good</label>
+                            <label for="accuracy3" class="bi bi-star-fill"></label>
+                        </div>
+                        <div class="text-star">
+                            <input type="radio" id="accuracy4" name="accuracy" data-value="4">
+                            <label for="accuracy4" class="star-label">Very good</label>
+                            <label for="accuracy4" class="bi bi-star-fill"></label>
+                        </div>
+                        <div class="text-star">
+                            <input type="radio" id="accuracy5" name="accuracy" data-value="5">
+                            <label for="accuracy5" class="star-label">Excellent</label>
+                            <label for="accuracy5" class="bi bi-star-fill"></label>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="category">
+                        <span>Do you have any other comments/suggestions? Feel free to write them here:</span>
+                        <textarea id="userSuggestions" class="form-control mt-2" rows="3" placeholder="Enter your comments here..."></textarea>
+                    </div>
                     </div>
                 `);
                 surveyPopup.find('.modal-footer').html(`
