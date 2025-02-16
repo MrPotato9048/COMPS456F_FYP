@@ -265,7 +265,7 @@ def dev():
     ratings = mongo.db.rating.find()
     rateTime = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
     rateAccuracy = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
-    suggestions = mongo.db.rating.find({'suggestions': {'$exists': True}})
+    suggestions = mongo.db.rating.find({'suggestions': {'$ne': ''}})
     for rating in ratings:
         rateTime[str(rating['responseTime'])] += 1
         rateAccuracy[str(rating['accuracy'])] += 1

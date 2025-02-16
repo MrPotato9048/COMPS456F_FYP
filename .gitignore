@@ -1,4 +1,7 @@
+.deployment
 .env
+.vscode
 __pycache__
 uploads
+settings.json
 static
