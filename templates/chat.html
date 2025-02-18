@@ -223,7 +223,7 @@
                             audio = null;
                         }
                         audio = new Audio(data.audio_url);
-                        audio.play();
+                        
 
                         const endTime = performance.now();
                         const duration = (endTime - startTime) / 1000;
@@ -248,7 +248,9 @@
                         var responseHTML = `
                             <span>${loadingElement.querySelector('span').innerHTML}</span>
                             <p>${formattedResponse}</p>
-                            <button class="btn btn-success" onclick="toggleTTS('${data.audio_url}', this)"><i class="fas fa-pause"></i></button>
+                            <button class="btn btn-success" onclick="toggleTTS('${data.audio_url}', this)">
+                                <i class="fas fa-play"></i>  <!-- CHANGED FROM fa-pause -->
+                            </button>
                         `;
                         responseDiv.innerHTML = responseHTML;
 
@@ -260,8 +262,10 @@
 
                         // Update the button classes after it has been added to the DOM
                         var ttsButton = responseDiv.querySelector('button');
-                        ttsButton.classList.remove('btn-success');
-                        ttsButton.classList.add('btn-danger');
+                        //ttsButton.classList.remove('btn-success');
+                        //ttsButton.classList.add('btn-danger');
+                        ttsButton.classList.remove('btn-danger');
+                        ttsButton.classList.add('btn-success');
                         currentButton = ttsButton;
 
                         // Add the law table toggle button
@@ -272,14 +276,6 @@
 
                         // Append the responseDiv to the chatMessagesDiv
                         chatMessagesDiv.appendChild(responseDiv);
-
-                        audio.onended = () => {
-                            if (currentButton) {
-                                currentButton.innerHTML = '<i class="fas fa-play"></i>';
-                                currentButton.classList.remove('btn-danger');
-                                currentButton.classList.add('btn-success');
-                            }
-                        };
                     } else {
                         console.error('TTS failed');
                         loadingElement.innerHTML = `<span>${loadingElement.querySelector('span').innerHTML}</span><p>TTS failed</p>`;
@@ -337,6 +333,12 @@
                     button.innerHTML = '<i class="fas fa-pause"></i>';
                     button.classList.remove('btn-success');
                     button.classList.add('btn-danger');
+
+                    audio.onended = () => {
+                        button.innerHTML = '<i class="fas fa-play"></i>';
+                        button.classList.remove('btn-danger');
+                        button.classList.add('btn-success');
+                    };
                 }
             }
 
@@ -451,45 +453,56 @@
                 };
             }
 
-            //Transliteration input function 
+             //Transliteration input function 
              userInputField.addEventListener('input', debounce(function() {
-                const currentInput = userInputField.value.trim();
-                if (isTransliterationOn) { 
-                    // Always transliterate the current input
-                    fetchTransliterationSuggestions(currentInput);
+                const cursorPos = userInputField.selectionStart;
+                const fullText = userInputField.value;
+                const textBeforeCursor = fullText.substring(0, cursorPos);
+                
+                // Find the current word being edited
+                const words = textBeforeCursor.split(/\s+/);
+                const currentWord = words[words.length - 1];
+
+                if (isTransliterationOn && currentWord) {
+                    fetchTransliterationSuggestions(currentWord);
                 } else {
-                    suggestionsDiv.style.display = 'none'; 
-                    suggestionsDiv.innerHTML = ''; // Clear suggestions if transliteration is off
+                    suggestionsDiv.style.display = 'none';
+                    suggestionsDiv.innerHTML = '';
                 }
-            }, 300)); //easier to comment */
+            }, 300));
  
 
-            // Handle keydown events for space and arrow navigation
-            userInputField.addEventListener('keydown', function(e) {
+             // Handle keydown events for space and arrow navigation
+             userInputField.addEventListener('keydown', function(e) {
                 const items = suggestionsDiv.querySelectorAll('.suggestion-item');
                 if (isTransliterationOn && items.length > 0) {
                     if (e.key === 'ArrowDown') {
-                        currentSuggestionIndex = (currentSuggestionIndex + 1) % items.length; // Move down
+                        currentSuggestionIndex = (currentSuggestionIndex + 1) % items.length;
                         highlightSuggestion(currentSuggestionIndex);
-                        e.preventDefault(); // Prevent default behavior
+                        e.preventDefault();
                     } else if (e.key === 'ArrowUp') {
-                        currentSuggestionIndex = (currentSuggestionIndex - 1 + items.length) % items.length; // Move up
+                        currentSuggestionIndex = (currentSuggestionIndex - 1 + items.length) % items.length;
                         highlightSuggestion(currentSuggestionIndex);
-                        e.preventDefault(); // Prevent default behavior                           
+                        e.preventDefault();
                     } else if (e.key === ' ') {
                         if (currentSuggestionIndex >= 0) {
-                            e.preventDefault(); // Prevent default space behavior
+                            e.preventDefault();
                             const selectedSuggestion = items[currentSuggestionIndex].textContent.trim();
-                            const words = userInputField.value.trim().split(' ');
-                            words[words.length - 1] = selectedSuggestion; // Replace the last word
-                            userInputField.value = words.join(' ') + ' '; // Update input field
-                            suggestionsDiv.style.display = 'none'; // Hide suggestions
-                            currentSuggestionIndex = -1; // Reset suggestion index
-                            suggestionsDiv.innerHTML = ''; // Clear suggestions after selection
+                            const cursorPos = userInputField.selectionStart;
+                            const fullText = userInputField.value;
+                            const textBeforeCursor = fullText.substring(0, cursorPos);
+                            const textAfterCursor = fullText.substring(cursorPos);
+                            const wordsBefore = textBeforeCursor.split(/(\s+)/);
+                            const lastSegment = wordsBefore[wordsBefore.length - 1];
+                            const newTextBefore = textBeforeCursor.substring(0, textBeforeCursor.length - lastSegment.length) + selectedSuggestion;
+                            userInputField.value = newTextBefore + textAfterCursor;
+                            const newCursorPos = newTextBefore.length;
+                            userInputField.setSelectionRange(newCursorPos, newCursorPos);
+                            suggestionsDiv.style.display = 'none';
+                            currentSuggestionIndex = -1;
+                            suggestionsDiv.innerHTML = '';
                         }
-                    } 
-                } else if (e.key === ' ') {
-                    return;
+                    }
                 }
             });
 
@@ -501,14 +514,28 @@
                 });
             }
 
-            // Event listener for suggestion click
-            suggestionsDiv.addEventListener('click', function(e) {
+             // Event listener for suggestion click
+             suggestionsDiv.addEventListener('click', function(e) {
                 if (e.target.classList.contains('suggestion-item')) {
-                    const selectedSuggestion = e.target.textContent;
-                    const words = userInputField.value.trim().split(' ');
-                    words[words.length - 1] = selectedSuggestion; // Replace the last word
-                    userInputField.value = words.join(' ') + ' '; // Update input field
-                    suggestionsDiv.style.display = 'none'; 
+                    const cursorPos = userInputField.selectionStart;
+                    const fullText = userInputField.value;
+                    const textBeforeCursor = fullText.substring(0, cursorPos);
+                    const textAfterCursor = fullText.substring(cursorPos);
+                    
+                    // Find the current word position
+                    const wordsBefore = textBeforeCursor.split(/(\s+)/);
+                    const lastSegment = wordsBefore[wordsBefore.length - 1];
+                    const replacement = e.target.textContent.trim();
+                    
+                    // Replace the current word
+                    const newTextBefore = textBeforeCursor.substring(0, textBeforeCursor.length - lastSegment.length) + replacement;
+                    userInputField.value = newTextBefore + textAfterCursor;
+                    
+                    // Move cursor to end of replacement
+                    const newCursorPos = newTextBefore.length;
+                    userInputField.setSelectionRange(newCursorPos, newCursorPos);
+                    
+                    suggestionsDiv.style.display = 'none';
                     currentSuggestionIndex = -1;
                     suggestionsDiv.innerHTML = '';
                 }
