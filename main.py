@@ -60,41 +60,6 @@ async def text(lang, user_input):
         'documentId': documentId
     }
 
-async def speech(lang):
-    print("Lang: {lang}, Engine_lang: {engine_lang}".format(lang=lang, engine_lang=engine_lang))
-    match lang:
-        case 'en':
-            speech_lang = "en-US"
-        case 'ne':
-            speech_lang = "ne-NP"
-        case 'ur':
-            speech_lang = "ur-IN"
-        case 'fil':
-            speech_lang = "fil-PH"
-    user_speech_input = await asyncio.to_thread(stt.recognize_from_microphone, speech_lang)
-    translated_input = await asyncio.to_thread(t.translate, user_speech_input, lang, engine_lang)
-    print(f"Question translated to Chinese: {translated_input}")
-    chatbot_response = await c.chatbot(translated_input)
-
-    async def translate_item(item):
-        translated_law_text = await asyncio.to_thread(t.translate, item['law_text'], engine_lang, lang)
-        translated_law_chapter = await asyncio.to_thread(t.translate, item['law_chapter'], engine_lang, lang)
-        return {
-            'law_text': translated_law_text,
-            'law_id': item['law_id'],
-            'law_chapter': translated_law_chapter
-        }
-
-    translated_retrieved = await asyncio.gather(*[translate_item(item) for item in chatbot_response['retrieved']])
-    translated_response = await asyncio.to_thread(t.translate, chatbot_response['response'], engine_lang, lang)
-    documentId = saveDB("Speech", lang, user_speech_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
-    return {
-        'userInput': user_speech_input,
-        'response': translated_response,
-        'retrieved': translated_retrieved,
-        'documentId': documentId
-    }
-
 # Allow audio uploading, used for testing only (not gonna merge with speech function)
 async def audio(file_path, lang):
     print("Lang: {lang}, Engine_lang: {engine_lang}".format(lang=lang, engine_lang=engine_lang))
