@@ -160,6 +160,7 @@
                     const transcript = event.results[0][0].transcript;
                     console.log('You said: ' + transcript);
                     renderUser(transcript);
+                    startTime = performance.now();
                     sendRequestToPython(transcript);
                 };
 
@@ -233,18 +234,6 @@
                 // Fetch TTS and update the response once ready
                 fetchTTS(data.documentId, data.response, document.querySelector('.message.bot.loading'), data.retrieved);
 
-                const endTime = performance.now();
-                const duration = (endTime - startTime) / 1000;
-                console.log('Duration: ', duration);
-
-                console.log('Document ID before update: ', documentId);
-                // Update the duration in the database
-                fetch('/update_duration', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentId: documentId, duration: duration })
-                });
-
                 incrementResponseCount();
             }
         
@@ -262,6 +251,18 @@
                             audio = null;
                         }
                         audio = new Audio(data.audio_url);
+
+                        const endTime = performance.now();
+                        const duration = (endTime - startTime) / 1000;
+                        console.log('Duration: ', duration);
+
+                        console.log('Document ID before update: ', documentId);
+                        // Update the duration in the database
+                        fetch('/update_duration', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ documentId: documentId, duration: duration })
+                        });
 
                         // Create a new div for the response
                         var responseDiv = document.createElement('div');
