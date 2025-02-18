@@ -156,33 +156,19 @@ def index():
 @app.route('/chat', methods=['GET', 'POST'])
 async def chat():
     if request.method == 'POST':
-        input_type = request.json['inputType']
         user_input = request.json.get('userInput', '')
         lang = session.get('lang')
         
-        if input_type == 'text':
-            if lang in ['ne', 'ur']:
-                user_input_cleaned = user_input.translate(str.maketrans('', '', string.punctuation)).replace(" ", "") # clean all punctuation and spaces for alphabet check
-                if user_input_cleaned.strip().isalpha():
-                    print(user_input)
-            response = await text(lang, user_input)
-            return jsonify({
-                'response': response['response'],
-                'retrieved': response['retrieved'],
-                'documentId': response['documentId']
-            })
-        elif input_type == 'speech':
-            speech_output = await speech(lang)
-            user_input = speech_output['userInput']
-            response = speech_output['response']
-            retrieved = speech_output['retrieved']
-            print(f"userInput:  {user_input},  response: {response},   retrieved: {retrieved}")
-            return jsonify({
-                'user_input': user_input,
-                'response': response,
-                'retrieved': retrieved,
-                'documentId': speech_output['documentId']
-            }) 
+        if lang in ['ne', 'ur']:
+            user_input_cleaned = user_input.translate(str.maketrans('', '', string.punctuation)).replace(" ", "") # clean all punctuation and spaces for alphabet check
+            if user_input_cleaned.strip().isalpha():
+                print(user_input)
+        response = await text(lang, user_input)
+        return jsonify({
+            'response': response['response'],
+            'retrieved': response['retrieved'],
+            'documentId': response['documentId']
+        })
         
     lang = session.get('lang')
     return render_template('chat.html', lang=lang)

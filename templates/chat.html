@@ -146,31 +146,58 @@
                 var messageHTML = `<div class="message user" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span style="direction:rtl;">${userText}</span><p>${userInput}</p></div>`;
                 chatMessagesDiv.innerHTML += messageHTML;
             }
-        
-            speechBtn.addEventListener('click', () => {
-                $('#speech-modal').modal('show');
-                fetch('/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inputType: 'speech' })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    renderChatMessages(data);
-                    $('#speech-modal').modal('hide');
-                })
-                .catch(error => console.error(error));
-            });
+            
+            if ('webkitSpeechRecognition' in window) {
+                const recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
 
-            cancelSpeechButton.addEventListener('click', () => {
-                $('#speech-modal').modal('hide');
-            });
+                recognition.onstart = function() {
+                    console.log('Voice recognition started. Try speaking into the microphone.');
+                };
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    console.log('You said: ' + transcript);
+                    renderUser(transcript);
+                    sendRequestToPython(transcript);
+                };
+
+                recognition.onend = function() {
+                    console.log('Voice recognition ended.');
+                    $('#speech-modal').modal('hide');
+                }
+
+                speechBtn.addEventListener('click', () => {
+                    $('#speech-modal').modal('show');
+                    switch(lang) {
+                        case 'en':
+                            recognition.lang = 'en-US';
+                            break;
+                        case 'ne':
+                            recognition.lang = 'ne-NP';
+                            break;
+                        case 'ur':
+                            recognition.lang = 'ur-PK';
+                            break;
+                        case 'fil':
+                            recognition.lang = 'fil-PH';
+                            break;
+                    }
+                    recognition.start();
+                });
+
+                cancelSpeechButton.addEventListener('click', () => {
+                    recognition.abort();
+                    $('#speech-modal').modal('hide');
+                });
+            }
         
-            function sendRequestToPython(inputType, userInput) {
+            function sendRequestToPython(userInput) {
                 fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inputType: inputType, userInput: userInput })
+                    body: JSON.stringify({ userInput: userInput })
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -206,6 +233,18 @@
                 // Fetch TTS and update the response once ready
                 fetchTTS(data.documentId, data.response, document.querySelector('.message.bot.loading'), data.retrieved);
 
+                const endTime = performance.now();
+                const duration = (endTime - startTime) / 1000;
+                console.log('Duration: ', duration);
+
+                console.log('Document ID before update: ', documentId);
+                // Update the duration in the database
+                fetch('/update_duration', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ documentId: documentId, duration: duration })
+                });
+
                 incrementResponseCount();
             }
         
@@ -223,19 +262,6 @@
                             audio = null;
                         }
                         audio = new Audio(data.audio_url);
-                        
-
-                        const endTime = performance.now();
-                        const duration = (endTime - startTime) / 1000;
-                        console.log('Duration: ', duration);
-
-                        console.log('Document ID before update: ', documentId);
-                        // Update the duration in the database
-                        fetch('/update_duration', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ documentId: documentId, duration: duration })
-                        });
 
                         // Create a new div for the response
                         var responseDiv = document.createElement('div');
