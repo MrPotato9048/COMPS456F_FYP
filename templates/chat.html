@@ -79,8 +79,10 @@
             <div class="modal-content">
                 <div class="modal-body">
                     <p>Please speak into your microphone.</p>
+                    <p>Press "Stop" button to process</p>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" id="stop-speech-btn" class="btn btn-danger" data-bs-dismiss="modal">Stop</button>
                     <button type="button" id="cancel-speech-btn" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 </div>
             </div>
@@ -107,6 +109,7 @@
             const chatMessagesDiv = document.querySelector('.chat-messages');
             const transliterationBtn = document.getElementById('transliteration-btn'); 
             const suggestionsDiv = document.getElementById('suggestions');
+            const stopSpeechBtn = document.getElementById('stop-speech-btn');
             const cancelSpeechButton = document.getElementById('cancel-speech-btn');
             let randomResponses = Math.floor(Math.random() * 4) + 2; // 2-3 responses before survey popup
             let responseCount = 0;
@@ -149,7 +152,7 @@
             
             if ('webkitSpeechRecognition' in window) {
                 const recognition = new webkitSpeechRecognition();
-                recognition.continuous = false;
+                recognition.continuous = true;
                 recognition.interimResults = false;
 
                 recognition.onstart = function() {
@@ -167,10 +170,15 @@
                 recognition.onend = function() {
                     console.log('Voice recognition ended.');
                     $('#speech-modal').modal('hide');
+                    // Restart the recognition if it was not stopped / stopped unexpectedly
+                    if (!recognition.stopped) {
+                        recognition.start();
+                    }
                 }
 
                 speechBtn.addEventListener('click', () => {
                     $('#speech-modal').modal('show');
+                    recognition.stopped = false;
                     switch(lang) {
                         case 'en':
                             recognition.lang = 'en-US';
@@ -188,7 +196,14 @@
                     recognition.start();
                 });
 
+                stopSpeechBtn.addEventListener('click', () => {
+                    recognition.stopped = true;
+                    recognition.stop();
+                    $('#speech-modal').modal('hide');
+                });
+
                 cancelSpeechButton.addEventListener('click', () => {
+                    recognition.stopped = true;
                     recognition.abort();
                     $('#speech-modal').modal('hide');
                 });
