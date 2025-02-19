@@ -239,6 +239,20 @@
             });
         
             function sendRequestToPython(inputType, userInput) {
+                var langTexts = {
+                    'en': 'Bot',
+                    'ur': 'باٹ',
+                    'ne': 'बोट',
+                    'fil': 'Bot'
+                };
+                var botText = langTexts[lang];
+        
+                // Show loading indicator for chatbot response after 500ms
+                setTimeout(() => {
+                    var loadingHTML = `<div class="message bot loading" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${botText}</span><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+                    chatMessagesDiv.innerHTML += loadingHTML;
+                }, 500);
+
                 fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -248,7 +262,7 @@
                 .then(data => {
                     documentId = data.documentId;
                     console.log('Document ID: ', documentId);
-                    renderChatMessages(data);
+                    renderResponse(data);
                 })
                 .catch(error => console.error(error));
             }
@@ -262,26 +276,68 @@
                 }
             }
         
-            function renderChatMessages(data) {
-                var langTexts = {
-                    'en': 'Bot',
-                    'ur': 'باٹ',
-                    'ne': 'बोट',
-                    'fil': 'Bot'
-                };
-                var botText = langTexts[lang];
-        
-                // Show loading indicator for chatbot response
-                var loadingHTML = `<div class="message bot loading" style="direction: ${lang === 'ur' ? 'rtl' : 'ltr'}"><span>${botText}</span><p>Thinking...</p></div>`;
-                chatMessagesDiv.innerHTML += loadingHTML;
-        
-                // Fetch TTS and update the response once ready
-                fetchTTS(data.documentId, data.response, document.querySelector('.message.bot.loading'), data.retrieved);
+            function renderResponse(data) {
+                const endTime = performance.now();
+                const duration = (endTime - startTime) / 1000;
+                console.log('Duration: ', duration);
+
+                console.log('Document ID before update: ', data.documentId);
+                // Update the duration in the database
+                fetch('/update_duration', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ documentId: data.documentId, duration: duration })
+                });
+
+                // Create a new div for the response
+                var responseDiv = document.createElement('div');
+                responseDiv.id = `response ${data.documentId}`;
+                responseDiv.className = 'message bot';
+                responseDiv.classList.add('response-container');
+
+                // Update the loading element with the actual response and TTS button
+                var formattedResponse = data.response.replace(/\n/g, '<br>');
+                var responseHTML = `
+                    <span>${document.querySelector('.message.bot.loading span').innerHTML}</span>
+                    <p>${formattedResponse}</p>
+                    <button class="btn btn-success" onclick="handleTTS('${data.documentId}', \`${data.response}\`, this)">
+                        <i class="fas fa-play"></i>
+                    </button>
+                `;
+                responseDiv.innerHTML = responseHTML;
+
+                // Append the responseDiv to the chatMessagesDiv
+                chatMessagesDiv.appendChild(responseDiv);
+
+                // Remove the loadingElement
+                document.querySelector('.message.bot.loading').remove();
+
+                // Add the law table toggle button
+                if (data.retrieved && data.retrieved.length > 0) {
+                    var toggleButtonHTML = `<button class="btn btn-info" onclick="toggleLawDetails('${data.documentId}')">Show Detailed Law</button>`;
+                    responseDiv.innerHTML += toggleButtonHTML;
+                }
+
+                // Append the responseDiv to the chatMessagesDiv
+                chatMessagesDiv.appendChild(responseDiv);
 
                 incrementResponseCount();
             }
+
+            window.handleTTS = function(documentId, text, button) {
+                if (button.dataset.audioUrl) {
+                    toggleTTS(button.dataset.audioUrl, button);
+                } else {
+                    fetchTTS(documentId, text, button);
+                }
+            }
         
-            function fetchTTS(documentId, text, loadingElement, retrievedLaws) {
+            function fetchTTS(documentId, text, button) {
+                // Change button to grey with spinner
+                button.innerHTML = '<div class="spinner-border spinner-border-sm text-light" role="status"><span class="visually-hidden">Loading...</span></div>';
+                button.classList.remove('btn-success');
+                button.classList.add('btn-secondary');
+
                 fetch('/tts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -290,74 +346,48 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.audio_url) {
-                        if (audio) {
-                            audio.pause();
-                            audio = null;
-                        }
-                        audio = new Audio(data.audio_url);
-
-                        const endTime = performance.now();
-                        const duration = (endTime - startTime) / 1000;
-                        console.log('Duration: ', duration);
-
-                        console.log('Document ID before update: ', documentId);
-                        // Update the duration in the database
-                        fetch('/update_duration', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ documentId: documentId, duration: duration })
-                        });
-
-                        // Create a new div for the response
-                        var responseDiv = document.createElement('div');
-                        responseDiv.id = `response ${documentId}`;
-                        responseDiv.className = 'message bot';
-                        responseDiv.classList.add('response-container');
-
-                        // Update the loading element with the actual response and TTS button
-                        var formattedResponse = text.replace(/\n/g, '<br>');
-                        var responseHTML = `
-                            <span>${loadingElement.querySelector('span').innerHTML}</span>
-                            <p>${formattedResponse}</p>
-                            <button class="btn btn-success" onclick="toggleTTS('${data.audio_url}', this)">
-                                <i class="fas fa-play"></i>  <!-- CHANGED FROM fa-pause -->
-                            </button>
-                        `;
-                        responseDiv.innerHTML = responseHTML;
-
-                        // Append the responseDiv to the chatMessagesDiv
-                        chatMessagesDiv.appendChild(responseDiv);
-
-                        // Remove the loadingElement
-                        loadingElement.remove();
-
-                        // Update the button classes after it has been added to the DOM
-                        var ttsButton = responseDiv.querySelector('button');
-                        //ttsButton.classList.remove('btn-success');
-                        //ttsButton.classList.add('btn-danger');
-                        ttsButton.classList.remove('btn-danger');
-                        ttsButton.classList.add('btn-success');
-                        currentButton = ttsButton;
-
-                        // Add the law table toggle button
-                        if (retrievedLaws && retrievedLaws.length > 0) {
-                            var toggleButtonHTML = `<button class="btn btn-info" onclick="toggleLawDetails('${documentId}')">Show Detailed Law</button>`;
-                            responseDiv.innerHTML += toggleButtonHTML;
-                        }
-
-                        // Append the responseDiv to the chatMessagesDiv
-                        chatMessagesDiv.appendChild(responseDiv);
+                        button.dataset.audioUrl = data.audio_url;
+                        toggleTTS(data.audio_url, button);
                     } else {
                         console.error('TTS failed');
-                        loadingElement.innerHTML = `<span>${loadingElement.querySelector('span').innerHTML}</span><p>TTS failed</p>`;
-                        loadingElement.classList.remove('loading');
+                        button.innerHTML = '<i class="fas fa-play"></i> TTS failed';
+                        button.classList.remove('btn-secondary');
+                        button.classList.add('btn-danger');
                     }
                 })
                 .catch(error => {
                     console.error(error);
-                    loadingElement.innerHTML = `<span>${loadingElement.querySelector('span').innerHTML}</span><p>Error occurred</p>`;
-                    loadingElement.classList.remove('loading');
+                    button.innerHTML = '<i class="fas fa-play"></i> Error occurred';
+                    button.classList.remove('btn-secondary');
+                    button.classList.add('btn-danger');
                 });
+            }
+
+            function toggleTTS(audioUrl, button) {
+                if (audio && !audio.paused) {
+                    audio.pause();
+                    button.innerHTML = '<i class="fas fa-play"></i>';
+                    button.classList.remove('btn-danger');
+                    button.classList.add('btn-success');
+                } else {
+                    if (currentButton && currentButton !== button) {
+                        currentButton.innerHTML = '<i class="fas fa-play"></i>';
+                        currentButton.classList.remove('btn-danger');
+                        currentButton.classList.add('btn-success');
+                    }
+                    currentButton = button;
+                    audio = new Audio(audioUrl);
+                    audio.play();
+                    button.innerHTML = '<i class="fas fa-pause"></i>';
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-danger');
+
+                    audio.onended = () => {
+                        button.innerHTML = '<i class="fas fa-play"></i>';
+                        button.classList.remove('btn-danger');
+                        button.classList.add('btn-success');
+                    };
+                }
             }
 
             // Separate function to toggle the detailed law
@@ -385,33 +415,6 @@
                         console.error(`Error fetching law details for documentId: ${documentId}`, error);
                     });
             };
-
-            window.toggleTTS = function(audioUrl, button) {
-                if (audio && !audio.paused) {
-                    audio.pause();
-                    button.innerHTML = '<i class="fas fa-play"></i>';
-                    button.classList.remove('btn-danger');
-                    button.classList.add('btn-success');
-                } else {
-                    if (currentButton && currentButton !== button) {
-                        currentButton.innerHTML = '<i class="fas fa-play"></i>';
-                        currentButton.classList.remove('btn-danger');
-                        currentButton.classList.add('btn-success');
-                    }
-                    currentButton = button;
-                    audio = new Audio(audioUrl);
-                    audio.play();
-                    button.innerHTML = '<i class="fas fa-pause"></i>';
-                    button.classList.remove('btn-success');
-                    button.classList.add('btn-danger');
-
-                    audio.onended = () => {
-                        button.innerHTML = '<i class="fas fa-play"></i>';
-                        button.classList.remove('btn-danger');
-                        button.classList.add('btn-success');
-                    };
-                }
-            }
 
             window.showSurvey = function() {
                 const surveyPopup = $('#surveyPopup');
@@ -662,7 +665,7 @@
                         contentType: false,
                         processData: false,
                         success: function(data) {
-                            renderChatMessages(data);
+                            sendRequestToPython('audio', data);
                         },
                         error: function(jqXHR) {
                             $('#response').html('<p>Error: ' + jqXHR.responseJSON.error + '</p>');
