@@ -36,7 +36,7 @@ def saveDB(inputType, lang, inputText, translatedInput, outputText, translatedOu
     result = mongo.db.query.insert_one(data)
     return str(result.inserted_id)
 
-async def text(lang, user_input):
+async def text(lang, input_type, user_input):
     print("Lang: {lang}, Engine_lang: {engine_lang}".format(lang=lang, engine_lang=engine_lang))
     translated_input = await asyncio.to_thread(t.translate, user_input, lang, engine_lang)
     print(f"Question translated to Chinese: {translated_input}")
@@ -53,7 +53,7 @@ async def text(lang, user_input):
 
     translated_retrieved = await asyncio.gather(*[translate_item(item) for item in chatbot_response['retrieved']])
     translated_response = await asyncio.to_thread(t.translate, chatbot_response['response'], engine_lang, lang)
-    documentId = saveDB("Text", lang, user_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
+    documentId = saveDB(input_type, lang, user_input, translated_input, {'response': chatbot_response['response'], 'retrieved': chatbot_response['retrieved']}, {'response': translated_response, 'retrieved': translated_retrieved})
     return {
         'response': translated_response,
         'retrieved': translated_retrieved,
@@ -121,6 +121,12 @@ def index():
 @app.route('/chat', methods=['GET', 'POST'])
 async def chat():
     if request.method == 'POST':
+        if request.json.get('inputType') == 'text':
+            input_type = 'Text'
+        elif request.json.get('inputType') == 'audio':
+            input_type = 'Audio'
+        else:
+            return jsonify({'error': 'Invalid input type'}), 400
         user_input = request.json.get('userInput', '')
         lang = session.get('lang')
         
@@ -128,7 +134,7 @@ async def chat():
             user_input_cleaned = user_input.translate(str.maketrans('', '', string.punctuation)).replace(" ", "") # clean all punctuation and spaces for alphabet check
             if user_input_cleaned.strip().isalpha():
                 print(user_input)
-        response = await text(lang, user_input)
+        response = await text(lang, input_type, user_input)
         return jsonify({
             'response': response['response'],
             'retrieved': response['retrieved'],
