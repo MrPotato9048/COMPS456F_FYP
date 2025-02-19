@@ -79,7 +79,7 @@
             <div class="modal-content">
                 <div class="modal-body">
                     <p>Please speak into your microphone.</p>
-                    <p>Press "Stop" button to process</p>
+                    <p>Press "Stop" button to end speech recognition</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" id="stop-speech-btn" class="btn btn-danger" data-bs-dismiss="modal">Stop</button>
@@ -119,6 +119,8 @@
             let currentButton = null;
             let startTime;
             let documentId;
+            let recognizer;
+            let recognizedTextBuffer = '';
 
             userInputField.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter' && userInputField.value.trim() != '') {
@@ -150,64 +152,91 @@
                 chatMessagesDiv.innerHTML += messageHTML;
             }
             
-            if ('webkitSpeechRecognition' in window) {
-                const recognition = new webkitSpeechRecognition();
-                recognition.continuous = true;
-                recognition.interimResults = false;
-
-                recognition.onstart = function() {
-                    console.log('Voice recognition started. Try speaking into the microphone.');
-                };
-
-                recognition.onresult = function(event) {
-                    const transcript = event.results[0][0].transcript;
-                    console.log('You said: ' + transcript);
-                    renderUser(transcript);
-                    startTime = performance.now();
-                    sendRequestToPython('speech', transcript);
-                };
-
-                recognition.onend = function() {
-                    console.log('Voice recognition ended.');
-                    $('#speech-modal').modal('hide');
-                    // Restart the recognition if it was not stopped / stopped unexpectedly
-                    if (!recognition.stopped) {
-                        recognition.start();
-                    }
-                }
-
-                speechBtn.addEventListener('click', () => {
-                    $('#speech-modal').modal('show');
-                    recognition.stopped = false;
-                    switch(lang) {
-                        case 'en':
-                            recognition.lang = 'en-US';
-                            break;
-                        case 'ne':
-                            recognition.lang = 'ne-NP';
-                            break;
-                        case 'ur':
-                            recognition.lang = 'ur-PK';
-                            break;
-                        case 'fil':
-                            recognition.lang = 'fil-PH';
-                            break;
-                    }
-                    recognition.start();
-                });
-
-                stopSpeechBtn.addEventListener('click', () => {
-                    recognition.stopped = true;
-                    recognition.stop();
-                    $('#speech-modal').modal('hide');
-                });
-
-                cancelSpeechButton.addEventListener('click', () => {
-                    recognition.stopped = true;
-                    recognition.abort();
-                    $('#speech-modal').modal('hide');
-                });
+            function startRecognition() {
+                fetch('/get_speech_config')
+                    .then(response => response.json())
+                    .then(data => {
+                        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(data.subscriptionKey, data.region);
+                        switch (lang) {
+                            case 'en':
+                                speechConfig.speechRecognitionLanguage = 'en-US';
+                                break;
+                            case 'ne':
+                                speechConfig.speechRecognitionLanguage = 'ne-NP';
+                                break;
+                            case 'ur':
+                                speechConfig.speechRecognitionLanguage = 'ur-PK';
+                                break;
+                            case 'fil':
+                                speechConfig.speechRecognitionLanguage = 'fil-PH';
+                                break;
+                            default:
+                                speechConfig.speechRecognitionLanguage = 'en-US';
+                        }
+                        const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+                        recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+                        recognizer.recognizing = function(s, e) {
+                            console.log(`RECOGNIZING: Text=${e.result.text}`);
+                        };
+                        recognizer.recognized = function(s, e) {
+                            if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                                console.log(`RECOGNIZED: Text=${e.result.text}`);
+                                recognizedTextBuffer += e.result.text + ' ';
+                            } else if (e.result.reason === SpeechSDK.ResultReason.NoMatch) {
+                                console.log('NOMATCH: Speech could not be recognized.');
+                            }
+                        };
+                        recognizer.canceled = function(s, e) {
+                            console.log(`CANCELED: Reason=${e.reason}`);
+                            if (e.reason === SpeechSDK.CancellationReason.Error) {
+                                console.log(`CANCELED: ErrorCode=${e.errorCode}`);
+                                console.log(`CANCELED: ErrorDetails=${e.errorDetails}`);
+                            }
+                            recognizer.stopContinuousRecognitionAsync();
+                        };
+                        recognizer.sessionStopped = function(s, e) {
+                            console.log("Session stopped.");
+                            recognizer.stopContinuousRecognitionAsync();
+                        };
+            
+                        recognizer.startContinuousRecognitionAsync();
+                    })
+                    .catch(error => console.error('Error fetching speech config:', error));
             }
+            
+            function stopRecognition() {
+                if (recognizer) {
+                    recognizer.stopContinuousRecognitionAsync(() => {
+                        if (recognizedTextBuffer.trim() !== '') {
+                            renderUser(recognizedTextBuffer.trim());
+                            startTime = performance.now();
+                            sendRequestToPython('speech', recognizedTextBuffer.trim());
+                            recognizedTextBuffer = '';
+                        }
+                    });
+                }
+            }
+
+            speechBtn.addEventListener('click', () => {
+                $('#speech-modal').modal('show');
+                startRecognition();
+            });
+
+            stopSpeechBtn.addEventListener('click', () => {
+                stopRecognition();
+                console.log('Speech recognition stopped by user.');
+                $('#speech-modal').modal('hide');
+            });
+
+            cancelSpeechButton.addEventListener('click', () => {
+                if (recognizer) {
+                    recognizer.stopContinuousRecognitionAsync(() => {
+                        recognizedTextBuffer = '';
+                        console.log('Speech recognition aborted by user.');
+                        $('#speech-modal').modal('hide');
+                    });
+                }
+            });
         
             function sendRequestToPython(inputType, userInput) {
                 fetch('/chat', {

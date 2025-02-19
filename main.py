@@ -273,5 +273,14 @@ def rate():
     mongo.db.rating.insert_one({'responseTime': responseTime, 'accuracy': accuracy, 'suggestions': suggestions})
     return jsonify({'message': 'Rating submitted successfully'}), 200
 
+@app.route('/get_speech_config', methods=['GET'])
+def get_speech_config():
+    subscription_key = os.getenv('SPEECH_KEY')
+    region = os.getenv('SPEECH_REGION')
+    return jsonify({
+        'subscriptionKey': subscription_key,
+        'region': region
+    })
+
 if __name__ == "__main__":
     app.run()
