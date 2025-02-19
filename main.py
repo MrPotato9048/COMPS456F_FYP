@@ -1,3 +1,4 @@
+from asgiref.wsgi import WsgiToAsgi
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for
@@ -286,3 +287,5 @@ def get_speech_config():
 
 if __name__ == "__main__":
     app.run()
+
+asgi_app = WsgiToAsgi(app)
