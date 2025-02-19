@@ -123,8 +123,8 @@ async def chat():
     if request.method == 'POST':
         if request.json.get('inputType') == 'text':
             input_type = 'Text'
-        elif request.json.get('inputType') == 'audio':
-            input_type = 'Audio'
+        elif request.json.get('inputType') == 'speech':
+            input_type = 'Speech'
         else:
             return jsonify({'error': 'Invalid input type'}), 400
         user_input = request.json.get('userInput', '')
