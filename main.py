@@ -3,7 +3,7 @@ from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from flask_pymongo import PyMongo
-import string, os, mimetypes, asyncio
+import string, os, mimetypes, asyncio, random
 import stt, tts, chatbot as c, translator as t, transliterate as tr
 
 """from dotenv import load_dotenv
@@ -113,14 +113,39 @@ def initialize():
 @app.route('/lang/<lang>')
 def set_language(lang):
     session['lang'] = lang
+    if session['betaModalIsShown'] == False:
+        session['betaModalIsShown'] = True
     return redirect(url_for('chat'))
 
 @app.route('/')
 def index():
     return redirect(url_for('chat'))
 
+# For beta testing, set beta testing flag in session
+@app.route('/betatest')
+def betatest():
+    session['betatest'] = True
+    session['betaModalIsShown'] = False
+    return redirect(url_for('chat'))
+@app.route('/betatest/close')
+def close_betatest():
+    session['betatest'] = False
+    return redirect(url_for('chat'))
+
+@app.route('/fetchSampleQuestion', methods=['GET'])
+def fetchSampleQuestion():
+    sampleQuestions = mongo.db.sampleQuestions.find_one({}, {'questions': 1})
+    if sampleQuestions and 'questions' in sampleQuestions:
+        questions = sampleQuestions['questions']
+        random_question = random.choice(questions)
+        return jsonify({'question': random_question})
+    else:
+        return jsonify({'error': 'No sample questions found'}), 404
+
 @app.route('/chat', methods=['GET', 'POST'])
 async def chat():
+    lang = session.get('lang')
+    
     if request.method == 'POST':
         if request.json.get('inputType') == 'text':
             input_type = 'Text'
@@ -131,7 +156,6 @@ async def chat():
         else:
             return jsonify({'error': 'Invalid input type'}), 400
         user_input = request.json.get('userInput', '')
-        lang = session.get('lang')
         
         if lang in ['ne', 'ur']:
             user_input_cleaned = user_input.translate(str.maketrans('', '', string.punctuation)).replace(" ", "") # clean all punctuation and spaces for alphabet check
@@ -144,7 +168,6 @@ async def chat():
             'documentId': response['documentId']
         })
         
-    lang = session.get('lang')
     return render_template('chat.html', lang=lang)
 
 # For uploading audio

@@ -201,6 +201,7 @@
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
+                    {% if session.betatest == False %}
                     <li class="nav-item dropdown">
                         <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">
                             Languages
@@ -212,6 +213,7 @@
                             <li><a class="dropdown-item" href="/lang/fil">Tagalog</a></li>
                         </ul>
                     </li>
+                    {% endif %}
                 </ul>
             </div>
         </nav>
