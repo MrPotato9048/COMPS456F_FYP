@@ -106,6 +106,8 @@ def initialize():
     session.permanent = True
     if 'betatest' not in session:
         session['betatest'] = False
+    if 'betaModalIsShown' not in session:
+        session['betaModalIsShown'] = False
     if 'lang' not in session:
         session['lang'] = "en"  # default language
     if 'login' not in session:
