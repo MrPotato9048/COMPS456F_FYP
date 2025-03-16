@@ -106,8 +106,6 @@ def initialize():
     session.permanent = True
     if 'betatest' not in session:
         session['betatest'] = False
-    if 'betaModalIsShown' not in session:
-        session['betaModalIsShown'] = False
     if 'lang' not in session:
         session['lang'] = "en"  # default language
     if 'login' not in session:
@@ -117,7 +115,7 @@ def initialize():
 @app.route('/lang/<lang>')
 def set_language(lang):
     session['lang'] = lang
-    if session['betaModalIsShown'] == False:
+    if 'betaModalIsShown' in session and session['betaModalIsShown'] == False:
         session['betaModalIsShown'] = True
     return redirect(url_for('chat'))
 
