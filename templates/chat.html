@@ -152,7 +152,6 @@
             var lang = document.getElementById('lang').value;
             var betatest = document.getElementById('betatest').value;
             var betaModalIsShown = document.getElementById('betaModalIsShown').value;
-            var questionText = document.getElementById('questionText');
             const userInputField = document.getElementById('user-input');
             const sendBtn = document.getElementById('send-btn');
             const speechBtn = document.getElementById('speech-btn');
@@ -176,12 +175,18 @@
                 if (betaModalIsShown === 'False') {
                     $('#betaWelcomeModal').modal('show');
                 }
-                document.getElementById('nepali-btn').addEventListener('click', function() {
-                    window.location.href = '/lang/ne';
-                });
-                document.getElementById('urdu-btn').addEventListener('click', function() {
-                    window.location.href = '/lang/ur';
-                });
+                const nepaliBtn = document.getElementById('nepali-btn');
+                const urduBtn = document.getElementById('urdu-btn');
+                if (nepaliBtn) {
+                    nepaliBtn.addEventListener('click', function() {
+                        window.location.href = '/lang/ne';
+                    });
+                }
+                if (urduBtn) {
+                    urduBtn.addEventListener('click', function() {
+                        window.location.href = '/lang/ur';
+                    });
+                }
             }
 
             renderSampleQuestion();
@@ -191,8 +196,10 @@
                     fetch('/fetchSampleQuestion')
                     .then(response => response.json())
                     .then(data => {
-                        questionText.textContent = data.question;
-                        console.log('Sample question: ', data.question);
+                        const questionText = document.getElementById('questionText');
+                        if (questionText) {
+                            questionText.textContent = data.question;
+                        }
                     })
                     .catch(error => console.error('Error fetching sample question: ', error));
                 }

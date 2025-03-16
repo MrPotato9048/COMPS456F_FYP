@@ -104,8 +104,8 @@ def is_supported_audio(file_path):
 @app.before_request
 def initialize():
     session.permanent = True
-    session['betatest'] = False
-    session['betaModalIsShown'] = False
+    if 'betatest' not in session:
+        session['betatest'] = False
     if 'lang' not in session:
         session['lang'] = "en"  # default language
     if 'login' not in session:
