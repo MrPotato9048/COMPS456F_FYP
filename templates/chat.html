@@ -599,17 +599,36 @@
                         if (betatest) {
                             surveyPopup.find('.modal-body').html('<span class="thank-you-message">Thank you for your response! You may continue trying our chatbot, or close the tab to conclude the testing. Thank you once again to join our beta test!</span>');
                             surveyPopup.find('.modal-footer').html(
-                                '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continue</button>' + 
+                                '<button type="button" class="btn btn-secondary" onclick="resetSurveyPopup()" data-bs-dismiss="modal">Continue</button>' + 
                                 '<button type="button" class="btn btn-primary" onclick="endTesting()">End Testing</button>');
                         } else {
                             surveyPopup.find('.modal-body').html('<span class="thank-you-message">Thank you for your response!</span>');
-                            surveyPopup.find('.modal-footer').html('<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>');
+                            surveyPopup.find('.modal-footer').html('<button type="button" class="btn btn-secondary" onclick="resetSurveyPopup()" data-bs-dismiss="modal">Close</button>');
                             setTimeout(() => {
                                 surveyPopup.modal('hide');
                             }, 3000);
                         }
                     });
                 });
+            }
+
+            window.resetSurveyPopup = function() {
+                if (betatest) {
+                    $('#surveyPopup').find('.modal-body').html(`
+                        <p>Please rate your experience with the chatbot so far.</p>
+                    `);
+                    $('#surveyPopup').find('.modal-footer').html(`
+                        <button type="button" class="btn btn-primary" onclick="showSurvey()">Continue</button>
+                    `);
+                } else {
+                    $('#surveyPopup').find('.modal-body').html(`
+                        <p>Would you like to rate your experience with the chatbot so far?</p>
+                    `);
+                    $('#surveyPopup').find('.modal-footer').html(`
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                        <button type="button" class="btn btn-primary" onclick="showSurvey()">Yes</button>
+                    `);
+                }
             }
 
             window.endTesting = function() {
