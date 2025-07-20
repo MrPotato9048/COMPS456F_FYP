@@ -2,7 +2,7 @@ import aiohttp, os
 
 api = os.getenv('LEGEXP_API_KEY')
 
-api_endpoint = "https://api.thinkthinksyn.com/legalexp/rag/chat"
+api_endpoint = os.getenv('LEGEXP_API_ENDPOINT')
 headers = {
     "Authorization": f"Bearer {api}",
 }
